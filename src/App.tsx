@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import HotDogCustomizer from './components/HotDogCustomizer';
-import DrinkSelector from './components/DrinkSelector';
+import AdminPanel from './components/AdminPanel';
 import OrderSummaryAndCheckout from './components/OrderSummaryAndCheckout';
 import { Cart, HotDogItem, DrinkCartItem } from './types';
 import { DRINKS_MENU } from './constants';
@@ -11,7 +11,7 @@ import {
   Bike, 
   ShoppingBag, 
   UtensilsCrossed, 
-  CupSoda, 
+  Shield, 
   ShoppingCart, 
   Store, 
   Flame, 
@@ -22,8 +22,8 @@ import {
 const LOCAL_STORAGE_KEY = 'divino_lanches_cart';
 
 export default function App() {
-  // Navigation tabs state: 'montar' | 'bebidas' | 'carrinho' | 'sobre'
-  const [activeTab, setActiveTab] = useState<'montar' | 'bebidas' | 'carrinho'>('montar');
+  // Navigation tabs state: 'montar' | 'admin' | 'carrinho'
+  const [activeTab, setActiveTab] = useState<'montar' | 'admin' | 'carrinho'>('montar');
 
   // Master Cart State
   const [cart, setCart] = useState<Cart>(() => {
@@ -180,18 +180,15 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {activeTab === 'bebidas' && (
+                {activeTab === 'admin' && (
                   <motion.div
-                    key="bebidas"
+                    key="admin"
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -15 }}
                     className="p-0.5"
                   >
-                    <DrinkSelector 
-                      drinksInCart={cart.drinks} 
-                      onUpdateDrinkQty={handleUpdateDrinkQty} 
-                    />
+                    <AdminPanel onClose={() => setActiveTab('montar')} />
                   </motion.div>
                 )}
 
@@ -233,14 +230,14 @@ export default function App() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveTab('bebidas')}
+                    onClick={() => setActiveTab('admin')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'bebidas'
+                      activeTab === 'admin'
                         ? 'bg-brand-charcoal text-white shadow-xs'
                         : 'bg-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
                     }`}
                   >
-                    2. Bebidas Geladas
+                    🔐 Painel Admin
                   </button>
                   <button
                     type="button"
@@ -266,11 +263,8 @@ export default function App() {
                   onUpdateDrinkQty={handleUpdateDrinkQty}
                 />
               )}
-              {activeTab === 'bebidas' && (
-                <DrinkSelector 
-                  drinksInCart={cart.drinks} 
-                  onUpdateDrinkQty={handleUpdateDrinkQty} 
-                />
+              {activeTab === 'admin' && (
+                <AdminPanel onClose={() => setActiveTab('montar')} />
               )}
               {activeTab === 'carrinho' && (
                 <OrderSummaryAndCheckout
@@ -376,25 +370,25 @@ export default function App() {
             <span className="text-[10px] md:text-xs font-display">1. Montar Dog</span>
           </button>
 
-          {/* TAB 2: BEBIDAS */}
+          {/* TAB 2: ADMIN */}
           <button
             type="button"
-            onClick={() => setActiveTab('bebidas')}
+            onClick={() => setActiveTab('admin')}
             className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
-              activeTab === 'bebidas'
+              activeTab === 'admin'
                 ? 'text-brand-red font-bold scale-105'
                 : 'text-slate-400 hover:text-slate-650'
             }`}
           >
-            {activeTab === 'bebidas' && (
+            {activeTab === 'admin' && (
               <motion.div
                 layoutId="activeTabIndicator"
                 className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
                 transition={{ type: 'spring', stiffness: 350, damping: 25 }}
               />
             )}
-            <CupSoda className="w-5.5 h-5.5 mb-1" />
-            <span className="text-[10px] md:text-xs font-display">2. Bebidas</span>
+            <Shield className="w-5.5 h-5.5 mb-1" />
+            <span className="text-[10px] md:text-xs font-display">Admin</span>
           </button>
 
           {/* TAB 3: CARRINHO & CHECKOUT */}

@@ -177,6 +177,44 @@ export default function OrderSummaryAndCheckout({
     const encoded = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
 
+    // Salva o pedido no histórico local para exibição no painel Admin
+    try {
+      const savedOrder = {
+        id: `ped_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        customerName,
+        customerPhone,
+        orderType,
+        street,
+        num,
+        neighborhood,
+        reference,
+        paymentMethod,
+        changeFor,
+        hotDogs: cart.hotDogs.map(d => ({
+          type: d.type,
+          quantity: d.quantity,
+          price: d.price,
+          details: formatHotDogIngredients(d)
+        })),
+        drinks: cart.drinks.map(dr => ({
+          name: dr.name,
+          quantity: dr.quantity,
+          price: dr.price
+        })),
+        subtotal,
+        deliveryFee,
+        grandTotal,
+        timestamp: new Date().toISOString()
+      };
+      
+      const prevOrdersStr = localStorage.getItem('divino_lanches_orders');
+      const prevOrders = prevOrdersStr ? JSON.parse(prevOrdersStr) : [];
+      prevOrders.unshift(savedOrder);
+      localStorage.setItem('divino_lanches_orders', JSON.stringify(prevOrders));
+    } catch (e) {
+      console.error('Erro ao salvar pedido no histórico', e);
+    }
+
     // Mark as sent
     setOrderSent(true);
 
