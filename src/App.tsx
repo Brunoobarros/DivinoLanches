@@ -230,6 +230,17 @@ export default function App() {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setActiveTab('carrinho')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === 'carrinho'
+                        ? 'bg-brand-charcoal text-white shadow-xs'
+                        : 'bg-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                    }`}
+                  >
+                    2. Carrinho & Checkout
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setActiveTab('admin')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       activeTab === 'admin'
@@ -238,17 +249,6 @@ export default function App() {
                     }`}
                   >
                     🔐 Painel Admin
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('carrinho')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'carrinho'
-                        ? 'bg-brand-charcoal text-white shadow-xs'
-                        : 'bg-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                    }`}
-                  >
-                    3. Carrinho & Checkout
                   </button>
                 </div>
                 <div className="text-[10px] bg-slate-50 text-slate-600 border border-slate-100 px-3 py-1.5 rounded-lg font-mono font-bold">
@@ -370,27 +370,6 @@ export default function App() {
             <span className="text-[10px] md:text-xs font-display">1. Montar Dog</span>
           </button>
 
-          {/* TAB 2: ADMIN */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('admin')}
-            className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
-              activeTab === 'admin'
-                ? 'text-brand-red font-bold scale-105'
-                : 'text-slate-400 hover:text-slate-650'
-            }`}
-          >
-            {activeTab === 'admin' && (
-              <motion.div
-                layoutId="activeTabIndicator"
-                className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
-                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              />
-            )}
-            <Shield className="w-5.5 h-5.5 mb-1" />
-            <span className="text-[10px] md:text-xs font-display">Admin</span>
-          </button>
-
           {/* TAB 3: CARRINHO & CHECKOUT */}
           <button
             type="button"
@@ -427,8 +406,29 @@ export default function App() {
             </div>
             
             <span className="text-[10px] md:text-xs font-display">
-              3. Carrinho {subtotal > 0 && `(R$ ${subtotal.toFixed(0)})`}
+              2. Carrinho {subtotal > 0 && `(R$ ${subtotal.toFixed(0)})`}
             </span>
+          </button>
+
+          {/* TAB 2: ADMIN */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('admin')}
+            className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
+              activeTab === 'admin'
+                ? 'text-brand-red font-bold scale-105'
+                : 'text-slate-400 hover:text-slate-650'
+            }`}
+          >
+            {activeTab === 'admin' && (
+              <motion.div
+                layoutId="activeTabIndicator"
+                className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
+                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              />
+            )}
+            <Shield className="w-5.5 h-5.5 mb-1" />
+            <span className="text-[10px] md:text-xs font-display">Admin</span>
           </button>
 
         </div>
