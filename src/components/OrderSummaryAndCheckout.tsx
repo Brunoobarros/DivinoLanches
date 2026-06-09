@@ -555,7 +555,7 @@ export default function OrderSummaryAndCheckout({
               Forma de Pagamento
             </h3>
 
-            <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="grid grid-cols-2 gap-2 mb-2">
               {[
                 { method: 'pix' as const, label: 'Pix ⚡' },
                 { method: 'cartao_credito' as const, label: 'Crédito 💳' },
@@ -576,6 +576,9 @@ export default function OrderSummaryAndCheckout({
                 </button>
               ))}
             </div>
+            <p className="text-[10px] text-slate-450 font-medium italic mt-1.5">
+              * O pagamento é realizado diretamente no momento da entrega ou retirada (cartão, Pix ou dinheiro).
+            </p>
 
             {/* Change input for cash */}
             <AnimatePresence>
@@ -638,7 +641,7 @@ export default function OrderSummaryAndCheckout({
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all text-base cursor-pointer focus:ring-2 focus:ring-emerald-300"
             >
               <Send className="w-5 h-5 fill-white stroke-[2]" />
-              <span>Enviar Pedido p/ WhatsApp</span>
+              <span>Finalizar e Enviar Pedido pelo WhatsApp</span>
             </motion.button>
 
             <button
