@@ -1,0 +1,6 @@
+{
+  "name": "Divino Lanches",
+  "description": "App interativo para montagem e customização de cachorro-quente gourmet (frango ou boi), seleção de bebidas, opcionais e cálculo de entrega/retirada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
