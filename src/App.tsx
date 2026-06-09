@@ -344,7 +344,7 @@ export default function App() {
 
       {/* 4. Footer Padding */}
       <div className="py-4 text-center text-[11px] text-slate-400">
-        👑 Divino Lanches • São Paulo SP
+        👑 Divino Lanches • 
       </div>
 
       {/* 5. FLOATING MOBILE/DESKTOP BOTTOM TAB MENU (Fixed structure) */}

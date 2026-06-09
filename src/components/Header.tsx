@@ -20,12 +20,12 @@ export default function Header() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 180, damping: 15 }}
-            className="shrink-0"
+            className="shrink-0 overflow-hidden rounded-2xl md:rounded-3xl shadow-lg border border-white/10"
           >
             <img 
               src={logoImg} 
               alt="Divino Lanches Logo" 
-              className="h-16 md:h-20 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]" 
+              className="h-16 md:h-20 object-contain" 
             />
           </motion.div>
           
