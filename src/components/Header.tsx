@@ -25,7 +25,7 @@ export default function Header() {
             <img 
               src={logoImg} 
               alt="Divino Lanches Logo" 
-              className="h-12 sm:h-16 md:h-20 object-contain" 
+              className="h-14 sm:h-20 md:h-24 object-contain" 
             />
           </motion.div>
           
