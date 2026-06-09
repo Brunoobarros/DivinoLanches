@@ -7,7 +7,7 @@ export default function Header() {
   return (
     <header 
       className="relative text-white overflow-hidden shadow-xl border-b-4 border-brand-amber"
-      style={{ backgroundImage: 'radial-gradient(circle at center, #8f0f1c 0%, #470208 75%, #230104 100%)' }}
+      style={{ backgroundImage: 'radial-gradient(circle at center, #CF0004 0%, #7A0002 75%, #3D0001 100%)' }}
     >
       {/* Subtle brand patterns / ambient highlights */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />

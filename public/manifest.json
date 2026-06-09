@@ -4,8 +4,8 @@
   "description": "Cachorro quente de comer rezando. Monte o seu dogão artesanal!",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#470208",
-  "theme_color": "#7a0813",
+  "background_color": "#7A0002",
+  "theme_color": "#CF0004",
   "orientation": "portrait-primary",
   "icons": [
     {

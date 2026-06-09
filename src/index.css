@@ -5,10 +5,10 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --color-brand-red: #7a0813;
-  --color-brand-red-dark: #470208;
-  --color-brand-amber: #c5a059;
-  --color-brand-amber-light: #e0c080;
+  --color-brand-red: #CF0004;
+  --color-brand-red-dark: #7A0002;
+  --color-brand-amber: #EE9B1F;
+  --color-brand-amber-light: #F4C477;
   --color-brand-dark: #121212;
   --color-brand-charcoal: #1c1917;
 }
