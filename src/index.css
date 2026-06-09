@@ -12,3 +12,9 @@
   --color-brand-dark: #121212;
   --color-brand-charcoal: #1c1917;
 }
+
+html,
+body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
