@@ -367,7 +367,7 @@ export default function App() {
               />
             )}
             <UtensilsCrossed className="w-5.5 h-5.5 mb-1" />
-            <span className="text-[10px] md:text-xs font-display">1. Montar Dog</span>
+            <span className="text-[10px] md:text-xs font-display">1. Montar </span>
           </button>
 
           {/* TAB 3: CARRINHO & CHECKOUT */}
