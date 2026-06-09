@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Clock } from 'lucide-react';
-import logoMark from '../../assets/logo_mark.png';
+import { Clock, Crown } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -20,13 +19,11 @@ export default function Header() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 180, damping: 15 }}
-            className="shrink-0"
+            className="w-14 h-14 bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 rounded-full flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.4)] relative shrink-0 border-2 border-amber-200/40"
           >
-            <img 
-              src={logoMark} 
-              alt="Divino Logo Icon" 
-              className="h-16 md:h-20 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]" 
-            />
+            {/* Crown placed beautifully above and slightly left-titled over the letter D just like the art */}
+            <Crown className="w-7 h-7 text-yellow-300 fill-yellow-400 absolute -top-3 -left-1.5 rotate-[-15deg] drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]" />
+            <span className="text-3xl font-black font-display text-brand-red-dark select-none leading-none pt-0.5">D</span>
           </motion.div>
           
           <div className="flex flex-col">
