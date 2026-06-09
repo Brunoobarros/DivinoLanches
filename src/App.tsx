@@ -25,6 +25,21 @@ export default function App() {
   // Navigation tabs state: 'montar' | 'admin' | 'carrinho'
   const [activeTab, setActiveTab] = useState<'montar' | 'admin' | 'carrinho'>('montar');
 
+  // Check if admin mode is active (either in query parameter or saved in sessionStorage)
+  const [isAdminMode, setIsAdminMode] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const isParamAdmin = params.get('admin') === 'true';
+      if (isParamAdmin) {
+        sessionStorage.setItem('divino_admin_mode', 'true');
+        return true;
+      }
+      return sessionStorage.getItem('divino_admin_mode') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
   // Disabled items (out of stock) state
   const [disabledItems, setDisabledItems] = useState<string[]>(() => {
     try {
@@ -169,7 +184,7 @@ export default function App() {
   const subtotal = getSubtotalValue();
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-stone-50 to-stone-100/90 text-slate-800 flex flex-col font-sans selection:bg-red-500 selection:text-white pb-24 md:pb-8">
+    <div className={`min-h-screen bg-linear-to-b from-stone-50 to-stone-100/90 text-slate-800 flex flex-col font-sans selection:bg-red-500 selection:text-white md:pb-8 ${isAdminMode ? 'pb-24' : 'pb-8'}`}>
       
       {/* 1. Header Banner */}
       <Header />
@@ -202,7 +217,7 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {activeTab === 'admin' && (
+                {isAdminMode && activeTab === 'admin' && (
                   <motion.div
                     key="admin"
                     initial={{ opacity: 0, y: 15 }}
@@ -232,6 +247,7 @@ export default function App() {
                       onUpdateHotDogQty={handleUpdateHotDogQty}
                       onUpdateDrinkQty={handleUpdateDrinkQty}
                       onClearCart={handleClearCart}
+                      onNavigateToMenu={() => setActiveTab('montar')}
                     />
                   </motion.div>
                 )}
@@ -265,17 +281,19 @@ export default function App() {
                   >
                     2. Carrinho & Checkout
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('admin')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'admin'
-                        ? 'bg-brand-charcoal text-white shadow-xs'
-                        : 'bg-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
-                    }`}
-                  >
-                    🔐 Painel Admin
-                  </button>
+                  {isAdminMode && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('admin')}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        activeTab === 'admin'
+                          ? 'bg-brand-charcoal text-white shadow-xs'
+                          : 'bg-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                      }`}
+                    >
+                      🔐 Painel Admin
+                    </button>
+                  )}
                 </div>
                 <div className="text-[10px] bg-slate-50 text-slate-600 border border-slate-100 px-3 py-1.5 rounded-lg font-mono font-bold">
                   Total Carrinho: R$ {subtotal.toFixed(2)}
@@ -290,7 +308,7 @@ export default function App() {
                   disabledItems={disabledItems}
                 />
               )}
-              {activeTab === 'admin' && (
+              {isAdminMode && activeTab === 'admin' && (
                 <AdminPanel 
                   onClose={() => setActiveTab('montar')} 
                   disabledItems={disabledItems}
@@ -304,6 +322,7 @@ export default function App() {
                   onUpdateHotDogQty={handleUpdateHotDogQty}
                   onUpdateDrinkQty={handleUpdateDrinkQty}
                   onClearCart={handleClearCart}
+                  onNavigateToMenu={() => setActiveTab('montar')}
                 />
               )}
             </div>
@@ -369,101 +388,119 @@ export default function App() {
 
       {/* 4. Footer Padding */}
       <div className="py-4 text-center text-[11px] text-slate-400">
-        👑 Divino Lanches • 
+        👑 Divino Lanches • Todos os direitos reservados
       </div>
 
       {/* 5. FLOATING MOBILE/DESKTOP BOTTOM TAB MENU (Fixed structure) */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] z-50 py-2.5 px-4">
-        <div className="max-w-md mx-auto flex items-center justify-around">
-          
-          {/* TAB 1: MONTAR DOGÃO */}
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab('montar');
-              // Auto scroll to customizer if wanted
-              document.getElementById('builder-section')?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
-              activeTab === 'montar'
-                ? 'text-brand-red font-bold scale-105'
-                : 'text-slate-400 hover:text-slate-650'
-            }`}
-          >
-            {activeTab === 'montar' && (
-              <motion.div
-                layoutId="activeTabIndicator"
-                className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
-                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              />
-            )}
-            <UtensilsCrossed className="w-5.5 h-5.5 mb-1" />
-            <span className="text-[10px] md:text-xs font-display">1. Montar </span>
-          </button>
-
-          {/* TAB 3: CARRINHO & CHECKOUT */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('carrinho')}
-            className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
-              activeTab === 'carrinho'
-                ? 'text-brand-red font-bold scale-105'
-                : 'text-slate-400 hover:text-slate-650'
-            }`}
-          >
-            {activeTab === 'carrinho' && (
-              <motion.div
-                layoutId="activeTabIndicator"
-                className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
-                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              />
-            )}
+      {isAdminMode && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] z-50 py-2.5 px-4">
+          <div className="max-w-md mx-auto flex items-center justify-around">
             
-            <div className="relative">
-              <ShoppingCart className="w-5.5 h-5.5 mb-1" />
-              {/* Dynamic Notification badge */}
-              <AnimatePresence>
-                {cartCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    className="absolute -top-1.5 -right-2 bg-brand-red text-white text-[9px] font-black rounded-full h-4 min-w-4 flex items-center justify-center px-1 border border-white shadow-sm font-mono"
-                  >
-                    {cartCount}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </div>
-            
-            <span className="text-[10px] md:text-xs font-display">
-              2. Carrinho {subtotal > 0 && `(R$ ${subtotal.toFixed(0)})`}
-            </span>
-          </button>
+            {/* TAB 1: MONTAR DOGÃO */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('montar');
+                // Auto scroll to customizer if wanted
+                document.getElementById('builder-section')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
+                activeTab === 'montar'
+                  ? 'text-brand-red font-bold scale-105'
+                  : 'text-slate-400 hover:text-slate-650'
+              }`}
+            >
+              {activeTab === 'montar' && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
+                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                />
+              )}
+              <UtensilsCrossed className="w-5.5 h-5.5 mb-1" />
+              <span className="text-[10px] md:text-xs font-display">1. Montar </span>
+            </button>
 
-          {/* TAB 2: ADMIN */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('admin')}
-            className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
-              activeTab === 'admin'
-                ? 'text-brand-red font-bold scale-105'
-                : 'text-slate-400 hover:text-slate-650'
-            }`}
-          >
-            {activeTab === 'admin' && (
-              <motion.div
-                layoutId="activeTabIndicator"
-                className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
-                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              />
-            )}
-            <Shield className="w-5.5 h-5.5 mb-1" />
-            <span className="text-[10px] md:text-xs font-display">Admin</span>
-          </button>
+            {/* TAB 3: CARRINHO & CHECKOUT */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('carrinho')}
+              className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
+                activeTab === 'carrinho'
+                  ? 'text-brand-red font-bold scale-105'
+                  : 'text-slate-400 hover:text-slate-650'
+              }`}
+            >
+              {activeTab === 'carrinho' && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
+                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                />
+              )}
+              
+              <div className="relative">
+                <ShoppingCart className="w-5.5 h-5.5 mb-1" />
+                {/* Dynamic Notification badge */}
+                <AnimatePresence>
+                  {cartCount > 0 && (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className="absolute -top-1.5 -right-2 bg-brand-red text-white text-[9px] font-black rounded-full h-4 min-w-4 flex items-center justify-center px-1 border border-white shadow-sm font-mono"
+                    >
+                      {cartCount}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              <span className="text-[10px] md:text-xs font-display">
+                2. Carrinho {subtotal > 0 && `(R$ ${subtotal.toFixed(0)})`}
+              </span>
+            </button>
 
+            {/* TAB 2: ADMIN */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('admin')}
+              className={`flex flex-col items-center justify-center transition-all cursor-pointer relative py-1 px-3 rounded-2xl ${
+                activeTab === 'admin'
+                  ? 'text-brand-red font-bold scale-105'
+                  : 'text-slate-400 hover:text-slate-650'
+              }`}
+            >
+              {activeTab === 'admin' && (
+                <motion.div
+                  layoutId="activeTabIndicator"
+                  className="absolute inset-0 bg-brand-red/10 rounded-2xl -z-10"
+                  transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+                />
+              )}
+              <Shield className="w-5.5 h-5.5 mb-1" />
+              <span className="text-[10px] md:text-xs font-display">Admin</span>
+            </button>
+
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Floating Cart Button for Mobile (when bottom menu is hidden) */}
+      {!isAdminMode && cartCount > 0 && activeTab === 'montar' && (
+        <button
+          type="button"
+          onClick={() => setActiveTab('carrinho')}
+          className="fixed bottom-6 right-6 bg-brand-red hover:bg-brand-red-dark text-white p-4.5 rounded-full shadow-lg z-45 md:hidden flex items-center justify-center cursor-pointer transition-all active:scale-95 duration-200"
+        >
+          <div className="relative">
+            <ShoppingCart className="w-6 h-6 stroke-[2.5]" />
+            <span className="absolute -top-2.5 -right-3 bg-brand-amber text-slate-950 text-[10px] font-black rounded-full h-4.5 min-w-4.5 flex items-center justify-center border border-white shadow-sm font-mono px-1">
+              {cartCount}
+            </span>
+          </div>
+        </button>
+      )}
 
     </div>
   );

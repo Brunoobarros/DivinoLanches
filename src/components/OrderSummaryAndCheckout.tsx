@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder } from '../types';
 import { NEIGHBORHOODS, WHATSAPP_NUMBER, PROTEIN_LABELS } from '../constants';
-import { ShoppingCart, Trash2, MapPin, CheckCircle, Smartphone, Send, DollarSign, Copy, AlertTriangle } from 'lucide-react';
+import { ShoppingCart, Trash2, MapPin, CheckCircle, Smartphone, Send, DollarSign, Copy, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 interface OrderSummaryAndCheckoutProps {
   cart: Cart;
@@ -10,6 +10,7 @@ interface OrderSummaryAndCheckoutProps {
   onUpdateHotDogQty: (id: string, delta: number) => void;
   onUpdateDrinkQty: (drinkId: string, delta: number) => void;
   onClearCart: () => void;
+  onNavigateToMenu?: () => void;
 }
 
 export default function OrderSummaryAndCheckout({
@@ -18,6 +19,7 @@ export default function OrderSummaryAndCheckout({
   onUpdateHotDogQty,
   onUpdateDrinkQty,
   onClearCart,
+  onNavigateToMenu,
 }: OrderSummaryAndCheckoutProps) {
   // Checkout Details Status
   const [orderType, setOrderType] = useState<OrderType>('retirada');
@@ -271,21 +273,35 @@ export default function OrderSummaryAndCheckout({
     <div className="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm flex flex-col gap-6">
       
       {/* 1. Header with Cart Summary */}
-      <div className="flex items-center justify-between pb-4 border-b border-stone-100">
-        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-red/10 text-brand-red text-xs font-bold">3</span>
-          Carrinho de Pedidos
-        </h2>
-        {hasItems && (
-          <button
-            type="button"
-            onClick={onClearCart}
-            className="text-xs text-red-500 hover:text-red-700 hover:underline flex items-center gap-1 cursor-pointer font-medium"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Esvaziar
-          </button>
-        )}
+      <div className="flex items-center justify-between pb-4 border-b border-stone-100 gap-2">
+        <div className="flex items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-red/10 text-brand-red text-xs font-bold font-mono">3</span>
+          <h2 className="text-xl font-bold text-slate-800">Carrinho de Pedidos</h2>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {onNavigateToMenu && (
+            <button
+              type="button"
+              onClick={onNavigateToMenu}
+              className="md:hidden flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-650 text-[11px] font-extrabold transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Menu</span>
+            </button>
+          )}
+
+          {hasItems && (
+            <button
+              type="button"
+              onClick={onClearCart}
+              className="text-xs text-red-500 hover:text-red-700 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Esvaziar
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 2. Cart items list */}
