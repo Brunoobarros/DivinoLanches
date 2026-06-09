@@ -62,10 +62,21 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
   const [orders, setOrders] = useState<SavedOrder[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'pedidos' | 'estatisticas' | 'config'>('pedidos');
 
-  // Load orders from localStorage
+  // Load orders from localStorage and listen to real-time storage updates
   useEffect(() => {
     if (isLoggedIn) {
       loadOrders();
+
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'divino_lanches_orders') {
+          loadOrders();
+        }
+      };
+
+      window.addEventListener('storage', handleStorageChange);
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+      };
     }
   }, [isLoggedIn]);
 

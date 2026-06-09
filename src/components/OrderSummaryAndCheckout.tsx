@@ -217,9 +217,6 @@ export default function OrderSummaryAndCheckout({
 
     // Mark as sent
     setOrderSent(true);
-
-    // Try direct redirect
-    window.open(whatsappUrl, '_blank');
   };
 
   const copyToClipboard = () => {
@@ -251,46 +248,19 @@ export default function OrderSummaryAndCheckout({
         <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-md">
           <CheckCircle className="w-10 h-10 stroke-[2.5]" />
         </div>
-        <h3 className="text-2xl font-black text-emerald-950 mb-2">Pedido Enviado com Sucesso!</h3>
-        <p className="text-emerald-800 text-sm max-w-md mx-auto mb-6">
-          Seu pedido foi formatado e direcionado para o nosso WhatsApp. Caso a página oficial não tenha aberto automaticamente, você pode copiar a via de texto abaixo e nos enviar diretamente!
+        <h3 className="text-2xl font-black text-emerald-950 mb-2">Pedido Recebido com Sucesso!</h3>
+        <p className="text-emerald-800 text-sm max-w-md mx-auto mb-6 leading-relaxed">
+          Seu pedido foi registrado em nosso sistema e o chapeiro já está preparando o seu delicioso dogão. 
+          Lembrando que o pagamento será realizado diretamente no momento da entrega ou retirada.
         </p>
 
-        <div className="bg-white rounded-2xl border border-emerald-100 p-4 max-h-60 overflow-y-auto mb-6 text-left text-xs font-mono text-slate-700 whitespace-pre-line shadow-inner">
-          {generateOrderMessage()}
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            type="button"
-            onClick={copyToClipboard}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold text-sm bg-stone-100 hover:bg-stone-200 text-stone-700 transition-all cursor-pointer"
-          >
-            <Copy className="w-4 h-4" />
-            <span>{copiedToClipboard ? 'Copiado!' : 'Copiar Texto Completo'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              const message = generateOrderMessage();
-              const encoded = encodeURIComponent(message);
-              window.open(`https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`, '_blank');
-            }}
-            className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all cursor-pointer"
-          >
-            <Send className="w-4 h-4" />
-            <span>Abrir WhatsApp Novamente</span>
-          </button>
-        </div>
-
-        <div className="mt-8 pt-6 border-t border-emerald-200/50">
+        <div className="flex justify-center mt-2">
           <button
             type="button"
             onClick={resetAllAfterSuccess}
-            className="text-emerald-700 font-bold text-sm hover:underline hover:text-emerald-800 cursor-pointer"
+            className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-extrabold text-sm bg-emerald-650 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
-            Fazer outro Pedido no Divino Lanches 🌭
+            Fazer Novo Pedido 🌭
           </button>
         </div>
       </motion.div>
@@ -640,18 +610,9 @@ export default function OrderSummaryAndCheckout({
               onClick={handleSendOrder}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all text-base cursor-pointer focus:ring-2 focus:ring-emerald-300"
             >
-              <Send className="w-5 h-5 fill-white stroke-[2]" />
-              <span>Finalizar e Enviar Pedido pelo WhatsApp</span>
+              <CheckCircle className="w-5 h-5 stroke-[2.5]" />
+              <span>Finalizar Pedido</span>
             </motion.button>
-
-            <button
-              type="button"
-              onClick={copyToClipboard}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-dashed border-stone-300 text-stone-600 hover:bg-stone-50 font-medium text-xs transition-colors cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copiedToClipboard ? 'Copiado para Área de Transferência!' : 'Copiar Texto para Enviar Manualmente'}</span>
-            </button>
           </div>
 
         </div>
