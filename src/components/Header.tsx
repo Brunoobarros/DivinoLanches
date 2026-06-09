@@ -13,19 +13,19 @@ export default function Header() {
       <div className="absolute top-0 right-0 w-80 h-80 bg-white/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-10 left-10 w-96 h-20 bg-brand-amber/10 rotate-6 pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-4 py-3 md:py-4 flex flex-col sm:flex-row items-center justify-between gap-4 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 py-3 md:py-4 flex flex-row items-center justify-between gap-4 relative z-10">
         {/* Logo Image on the Left */}
         <div className="flex flex-row items-center gap-4 text-left">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 180, damping: 15 }}
-            className="shrink-0 overflow-hidden rounded-2xl md:rounded-3xl shadow-lg border border-white/10"
+            className="shrink-0"
           >
             <img 
               src={logoImg} 
               alt="Divino Lanches Logo" 
-              className="h-16 md:h-20 object-contain" 
+              className="h-14 sm:h-16 md:h-20 object-contain" 
             />
           </motion.div>
           
