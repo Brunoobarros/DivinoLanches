@@ -233,19 +233,19 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                     onClick={() => setType('boi')}
                     className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       type === 'boi'
-                        ? 'border-red-500 bg-red-50/40 text-red-950 font-bold'
-                        : 'border-slate-150 hover:border-slate-350 text-slate-600 bg-stone-50/50'
+                        ? 'border-brand-red bg-brand-red/5 text-brand-red font-bold'
+                        : 'border-slate-150 hover:border-slate-300 text-slate-600 bg-stone-50/50'
                     }`}
                   >
                     <div className="flex-1">
                       <p className="text-sm font-extrabold text-slate-900">Carne de Boi</p>
                       <p className="text-xs text-slate-500 leading-tight">O clássico absoluto e de dar água na boca.</p>
-                      <span className="text-xs font-bold text-brand-red bg-red-100/50 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                      <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
                         R$ {HOTDOG_PRICES.boi.toFixed(2)}
                       </span>
                     </div>
                     {type === 'boi' && (
-                      <span className="absolute top-3 right-3 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">✓</span>
+                      <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-xs">✓</span>
                     )}
                   </button>
 
@@ -254,19 +254,19 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                     onClick={() => setType('frango')}
                     className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
                       type === 'frango'
-                        ? 'border-red-500 bg-red-50/40 text-red-950 font-bold'
-                        : 'border-slate-150 hover:border-slate-350 text-slate-650 bg-stone-50/50'
+                        ? 'border-brand-red bg-brand-red/5 text-brand-red font-bold'
+                        : 'border-slate-150 hover:border-slate-300 text-slate-650 bg-stone-50/50'
                     }`}
                   >
                     <div className="flex-1">
                       <p className="text-sm font-extrabold text-slate-900">Frango Desfiado Cremoso</p>
                       <p className="text-xs text-slate-500 leading-tight">Cozido lentamente e temperado com ervas.</p>
-                      <span className="text-xs font-bold text-brand-red bg-red-100/50 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                      <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
                         R$ {HOTDOG_PRICES.frango.toFixed(2)}
                       </span>
                     </div>
                     {type === 'frango' && (
-                      <span className="absolute top-3 right-3 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs">✓</span>
+                      <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-xs">✓</span>
                     )}
                   </button>
                 </div>
@@ -355,17 +355,17 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                       onClick={() => toggleExtra(key)}
                       className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all cursor-pointer ${
                         extras[key]
-                          ? 'bg-red-500/10 border-red-300 text-red-950 font-bold'
-                          : 'bg-stone-50/50 border-slate-150 hover:border-slate-250 text-slate-650'
+                          ? 'bg-brand-red/5 border-brand-red/30 text-brand-red font-bold'
+                          : 'bg-stone-50/50 border-slate-150 hover:border-slate-250 text-slate-600'
                       }`}
                     >
                       <span className="text-xs font-semibold">{label}</span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px] bg-amber-400 text-slate-900 px-2 py-0.5 rounded-md font-mono font-bold">
+                        <span className="text-[11px] bg-brand-amber text-slate-950 px-2 py-0.5 rounded-md font-mono font-bold">
                           +R$ {price.toFixed(2)}
                         </span>
                         <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                          extras[key] ? 'bg-red-500 border-red-500 text-white' : 'border-slate-300'
+                          extras[key] ? 'bg-brand-red border-brand-red text-white' : 'border-slate-300'
                         }`}>
                           {extras[key] && <span className="text-[9px]">✓</span>}
                         </div>
@@ -452,7 +452,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
               whileTap={{ scale: 0.97 }}
               type="button"
               onClick={handleNextStep}
-              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-extrabold py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md transition-all cursor-pointer focus:ring-2 focus:ring-slate-300"
+              className="flex-1 bg-brand-red hover:bg-brand-red-dark text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md hover:shadow-lg transition-all cursor-pointer focus:ring-2 focus:ring-brand-amber/40"
             >
               <span>Avançar Passo</span>
               <ArrowRight className="w-4 h-4" />
@@ -484,7 +484,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                 whileTap={{ scale: 0.95 }}
                 type="button"
                 onClick={handleAdd}
-                className="flex-1 bg-brand-red hover:bg-brand-red-dark text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md hover:shadow-lg transition-all cursor-pointer focus:ring-2 focus:ring-amber-300"
+                className="flex-1 bg-brand-red hover:bg-brand-red-dark text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md hover:shadow-lg transition-all cursor-pointer focus:ring-2 focus:ring-brand-amber/40"
               >
                 <ShoppingCart className="w-4 h-4" />
                 <span>Adicionar • R$ {totalPrice.toFixed(2)}</span>
