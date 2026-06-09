@@ -52,10 +52,6 @@ export default function Header() {
               <p className="font-bold text-xs text-white font-mono">18:00 às 23:30</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-emerald-600 text-white px-3 py-1.5 rounded-xl shadow-xs border border-emerald-500/30 font-sans font-bold text-xs uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 bg-white rounded-full block animate-ping" />
-            <span className="text-[10px]">Aberto</span>
-          </div>
         </div>
       </div>
     </header>
