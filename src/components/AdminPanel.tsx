@@ -17,6 +17,7 @@ import {
   Info
 } from 'lucide-react';
 import { PROTEIN_LABELS } from '../constants';
+import logoImg from '../../assets/logo.png';
 
 interface SavedOrder {
   id: string;
@@ -138,9 +139,11 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-amber/5 rounded-full blur-2xl pointer-events-none" />
 
         <div className="text-center mb-6 relative z-10">
-          <div className="w-16 h-16 bg-gradient-to-b from-brand-red to-brand-red-dark rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Shield className="w-8 h-8 text-brand-amber" />
-          </div>
+          <img 
+            src={logoImg} 
+            alt="Divino Lanches Logo" 
+            className="w-16 h-16 object-contain rounded-2xl mx-auto mb-4 shadow-lg border border-slate-100" 
+          />
           <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Acesso Administrativo</h2>
           <p className="text-xs text-slate-400 mt-1">Insira a senha para ver o painel de pedidos</p>
         </div>
@@ -200,11 +203,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       {/* Top Banner */}
       <div className="bg-gradient-to-r from-brand-red to-brand-red-dark p-5 text-white flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center backdrop-blur-xs border border-white/10">
-            <Shield className="w-5 h-5 text-brand-amber" />
-          </div>
+          <img 
+            src={logoImg} 
+            alt="Divino Lanches Logo" 
+            className="w-10 h-10 object-contain rounded-xl border border-white/10" 
+          />
           <div>
-            <h2 className="font-black text-sm md:text-base uppercase tracking-tight">Painel Admin - Divino Lanches</h2>
+            <h2 className="font-black text-sm md:text-base uppercase tracking-tight">Painel Admin</h2>
             <p className="text-[10px] text-red-200 font-bold uppercase tracking-wider leading-none mt-1">Sessão Segura Ativa</p>
           </div>
         </div>
