@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HotDogType, BaseToppings, ExtraToppings, HotDogItem } from '../types';
 import { HOTDOG_PRICES, EXTRA_PRICES, DRINKS_MENU, PROTEIN_LABELS } from '../constants';
@@ -9,9 +9,10 @@ interface HotDogCustomizerProps {
   onAddHotDog: (item: Omit<HotDogItem, 'id'>) => void;
   onNavigateToCart?: () => void;
   onUpdateDrinkQty: (drinkId: string, delta: number) => void;
+  disabledItems: string[];
 }
 
-export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpdateDrinkQty }: HotDogCustomizerProps) {
+export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpdateDrinkQty, disabledItems }: HotDogCustomizerProps) {
   // Stepper state: 1, 2, 3, 4
   const [currentStep, setCurrentStep] = useState<number>(1);
 
@@ -33,6 +34,62 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   const [quantity, setQuantity] = useState(1);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [selectedDrinks, setSelectedDrinks] = useState<Record<string, number>>({});
+
+  // Reset selections if items are disabled in Admin Panel
+  useEffect(() => {
+    // 1. Check proteins
+    const active = getSelectedProteins();
+    const hasDisabledProtein = active.some(p => disabledItems.includes(p));
+    if (hasDisabledProtein) {
+      const available: ('boi' | 'frango' | 'calabresa')[] = [];
+      if (!disabledItems.includes('boi')) available.push('boi');
+      if (!disabledItems.includes('frango')) available.push('frango');
+      if (!disabledItems.includes('calabresa')) available.push('calabresa');
+      
+      if (available.length > 0) {
+        setType(available[0]);
+      }
+    }
+
+    // 2. Check basic toppings
+    setBaseToppings((prev) => {
+      let updated = { ...prev };
+      let changed = false;
+      (Object.keys(prev) as Array<keyof BaseToppings>).forEach((k) => {
+        if (disabledItems.includes(k) && prev[k]) {
+          updated[k] = false;
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+
+    // 3. Check extra toppings
+    setExtras((prev) => {
+      let updated = { ...prev };
+      let changed = false;
+      (Object.keys(prev) as Array<keyof ExtraToppings>).forEach((k) => {
+        if (disabledItems.includes(k) && prev[k]) {
+          updated[k] = false;
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+
+    // 4. Check drinks
+    setSelectedDrinks((prev) => {
+      let updated = { ...prev };
+      let changed = false;
+      Object.keys(prev).forEach((k) => {
+        if (disabledItems.includes(k) && prev[k] > 0) {
+          delete updated[k];
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+  }, [disabledItems, type]);
 
   // Helper selectors
   const toggleBaseTopping = (key: keyof BaseToppings) => {
@@ -292,13 +349,25 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                   </p>
                 </div>
 
+                {/* STEP 1 Warning if all proteins are disabled */}
+                {(() => {
+                  const allProteinsDisabled = disabledItems.includes('boi') && disabledItems.includes('frango') && disabledItems.includes('calabresa');
+                  return allProteinsDisabled && (
+                    <div className="p-4 bg-red-50 border border-red-200 text-red-750 rounded-2xl text-xs font-bold flex items-center gap-2 mb-4 leading-snug">
+                      <AlertTriangle className="w-5 h-5 shrink-0 text-red-600" />
+                      <span>Desculpe! Todos os nossos ingredientes principais (Salsicha de Boi, Frango Desfiado e Calabresa) estão esgotados no momento. Não é possível montar novos cachorros-quentes agora.</span>
+                    </div>
+                  );
+                })()}
+
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* Opção 1: Boi */}
                   {(() => {
-                    const isSelected = type === 'boi' || type === 'boi_frango' || type === 'boi_calabresa';
+                    const isProductDisabled = disabledItems.includes('boi');
+                    const isSelected = !isProductDisabled && (type === 'boi' || type === 'boi_frango' || type === 'boi_calabresa');
                     const currentSelected = getSelectedProteins();
                     const isMaxReached = currentSelected.length >= 2;
-                    const isDisabled = isMaxReached && !isSelected;
+                    const isDisabled = (isMaxReached && !isSelected) || isProductDisabled;
                     return (
                       <button
                         type="button"
@@ -315,9 +384,15 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         <div className="flex-1">
                           <p className="text-sm font-extrabold text-slate-900">Carne de Boi</p>
                           <p className="text-xs text-slate-500 leading-tight">Salsicha tradicional bovina grelhada.</p>
-                          <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                            R$ {HOTDOG_PRICES.boi.toFixed(2)}
-                          </span>
+                          {isProductDisabled ? (
+                            <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              Esgotado
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              R$ {HOTDOG_PRICES.boi.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                         {isSelected && (
                           <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-[10px]">✓</span>
@@ -328,10 +403,11 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
 
                   {/* Opção 2: Frango */}
                   {(() => {
-                    const isSelected = type === 'frango' || type === 'boi_frango' || type === 'frango_calabresa';
+                    const isProductDisabled = disabledItems.includes('frango');
+                    const isSelected = !isProductDisabled && (type === 'frango' || type === 'boi_frango' || type === 'frango_calabresa');
                     const currentSelected = getSelectedProteins();
                     const isMaxReached = currentSelected.length >= 2;
-                    const isDisabled = isMaxReached && !isSelected;
+                    const isDisabled = (isMaxReached && !isSelected) || isProductDisabled;
                     return (
                       <button
                         type="button"
@@ -348,9 +424,15 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         <div className="flex-1">
                           <p className="text-sm font-extrabold text-slate-900">Frango Desfiado</p>
                           <p className="text-xs text-slate-500 leading-tight">Frango desfiado cremoso e temperado.</p>
-                          <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                            R$ {HOTDOG_PRICES.frango.toFixed(2)}
-                          </span>
+                          {isProductDisabled ? (
+                            <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              Esgotado
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              R$ {HOTDOG_PRICES.frango.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                         {isSelected && (
                           <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-[10px]">✓</span>
@@ -361,10 +443,11 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
 
                   {/* Opção 3: Calabresa */}
                   {(() => {
-                    const isSelected = type === 'calabresa' || type === 'boi_calabresa' || type === 'frango_calabresa';
+                    const isProductDisabled = disabledItems.includes('calabresa');
+                    const isSelected = !isProductDisabled && (type === 'calabresa' || type === 'boi_calabresa' || type === 'frango_calabresa');
                     const currentSelected = getSelectedProteins();
                     const isMaxReached = currentSelected.length >= 2;
-                    const isDisabled = isMaxReached && !isSelected;
+                    const isDisabled = (isMaxReached && !isSelected) || isProductDisabled;
                     return (
                       <button
                         type="button"
@@ -381,9 +464,15 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         <div className="flex-1">
                           <p className="text-sm font-extrabold text-slate-900">Calabresa Defumada</p>
                           <p className="text-xs text-slate-500 leading-tight">Calabresa grelhada com cebola na chapa.</p>
-                          <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                            R$ {HOTDOG_PRICES.calabresa.toFixed(2)}
-                          </span>
+                          {isProductDisabled ? (
+                            <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              Esgotado
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              R$ {HOTDOG_PRICES.calabresa.toFixed(2)}
+                            </span>
+                          )}
                         </div>
                         {isSelected && (
                           <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-[10px]">✓</span>
@@ -426,23 +515,29 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         { key: 'cenoura' as const, label: 'Cenoura Raladinha', desc: 'Fina e nutritiva' },
                         { key: 'batataPalha' as const, label: 'Batata Palha Crocante', desc: 'Sempre fresquinha' },
                       ].map(({ key, label, desc }) => {
-                        const isSelected = baseToppings[key];
+                        const isProductDisabled = disabledItems.includes(key);
+                        const isSelected = baseToppings[key] && !isProductDisabled;
                         return (
                           <button
                             key={key}
                             type="button"
-                            onClick={() => toggleBaseTopping(key)}
-                            className={`p-2.5 rounded-xl flex flex-col items-center justify-center border text-center transition-all cursor-pointer ${
-                              isSelected
-                                ? 'bg-brand-amber/10 border-brand-amber text-brand-amber font-semibold'
-                                : 'bg-slate-50 border-slate-150 text-slate-400 line-through decoration-slate-350'
+                            onClick={() => !isProductDisabled && toggleBaseTopping(key)}
+                            disabled={isProductDisabled}
+                            className={`p-2.5 rounded-xl flex flex-col items-center justify-center border text-center transition-all ${
+                              isProductDisabled
+                                ? 'bg-slate-100 opacity-40 border-slate-200 text-slate-400 cursor-not-allowed line-through'
+                                : isSelected
+                                  ? 'bg-brand-amber/10 border-brand-amber text-brand-amber font-semibold cursor-pointer'
+                                  : 'bg-slate-50 border-slate-150 text-slate-400 line-through decoration-slate-350 cursor-pointer'
                             }`}
                           >
                             <h5 className="text-[11px] font-bold leading-tight mb-1">{label}</h5>
                             <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full tracking-wider mt-1 ${
-                              isSelected ? 'text-emerald-700 bg-emerald-100' : 'text-slate-450 bg-slate-150'
+                              isProductDisabled
+                                ? 'text-red-750 bg-red-100'
+                                : isSelected ? 'text-emerald-700 bg-emerald-100' : 'text-slate-450 bg-slate-150'
                             }`}>
-                              {isSelected ? 'INCLUSO' : 'REMOVIDO'}
+                              {isProductDisabled ? 'ESGOTADO' : isSelected ? 'INCLUSO' : 'REMOVIDO'}
                             </span>
                           </button>
                         );
@@ -461,30 +556,41 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         { key: 'molhoEspecial' as const, label: 'Molho Especial Divino (Ervas)', price: EXTRA_PRICES.molhoEspecial },
                         { key: 'molhoVerde' as const, label: 'Maionese Temperada Verde', price: EXTRA_PRICES.molhoVerde },
                         { key: 'molhoBarbecue' as const, label: 'Molho Barbecue Defumado', price: EXTRA_PRICES.molhoBarbecue },
-                      ].map(({ key, label, price }) => (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => toggleExtra(key)}
-                          className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all cursor-pointer ${
-                            extras[key]
-                              ? 'bg-brand-red/5 border-brand-red/30 text-brand-red font-bold'
-                              : 'bg-stone-50/50 border-slate-150 hover:border-slate-200 text-slate-600'
-                          }`}
-                        >
-                          <span className="text-xs font-semibold">{label}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] bg-brand-amber text-slate-950 px-2 py-0.5 rounded-md font-mono font-bold">
-                              +R$ {price.toFixed(2)}
+                      ].map(({ key, label, price }) => {
+                        const isProductDisabled = disabledItems.includes(key);
+                        const isSelected = extras[key] && !isProductDisabled;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => !isProductDisabled && toggleExtra(key)}
+                            disabled={isProductDisabled}
+                            className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all ${
+                              isProductDisabled
+                                ? 'bg-slate-100 opacity-40 border-slate-200 text-slate-450 cursor-not-allowed line-through'
+                                : isSelected
+                                  ? 'bg-brand-red/5 border-brand-red/30 text-brand-red font-bold cursor-pointer'
+                                  : 'bg-stone-50/50 border-slate-150 hover:border-slate-200 text-slate-600 cursor-pointer'
+                            }`}
+                          >
+                            <span className="text-xs font-semibold">
+                              {label} {isProductDisabled && <span className="text-red-650 font-bold ml-1 text-[10px]">(Esgotado)</span>}
                             </span>
-                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                              extras[key] ? 'bg-brand-red border-brand-red text-white' : 'border-slate-300'
-                            }`}>
-                              {extras[key] && <span className="text-[9px]">✓</span>}
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] bg-brand-amber text-slate-950 px-2 py-0.5 rounded-md font-mono font-bold">
+                                +R$ {price.toFixed(2)}
+                              </span>
+                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                                isProductDisabled
+                                  ? 'bg-slate-200 border-slate-350'
+                                  : isSelected ? 'bg-brand-red border-brand-red text-white' : 'border-slate-300'
+                              }`}>
+                                {isSelected && <span className="text-[9px]">✓</span>}
+                              </div>
                             </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -512,6 +618,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1">
                   {DRINKS_MENU.map((drink) => {
                     const qty = selectedDrinks[drink.id] || 0;
+                    const isProductDisabled = disabledItems.includes(drink.id);
                     
                     // Emoji mapping
                     let emoji = '🥤';
@@ -524,24 +631,40 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                       <div
                         key={drink.id}
                         className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
-                          qty > 0 
-                            ? 'border-brand-red bg-brand-red/5 shadow-2xs' 
-                            : 'border-slate-100 bg-stone-50/50 hover:border-slate-200'
+                          isProductDisabled
+                            ? 'border-slate-100 bg-stone-50/30 opacity-40 cursor-not-allowed'
+                            : qty > 0 
+                              ? 'border-brand-red bg-brand-red/5 shadow-2xs' 
+                              : 'border-slate-100 bg-stone-50/50 hover:border-slate-200'
                         }`}
                       >
                         <div className="flex items-center gap-3">
                           <span className="text-xl">{emoji}</span>
                           <div>
                             <h4 className="text-xs font-bold text-slate-800 leading-tight">{drink.name}</h4>
-                            <span className="text-xs font-mono font-semibold text-brand-red mt-0.5 block">
-                              R$ {drink.price.toFixed(2)}
-                            </span>
+                            {isProductDisabled ? (
+                              <span className="text-[10px] bg-red-100 text-red-750 px-2 py-0.5 rounded-md font-bold mt-0.5 inline-block">
+                                Esgotada
+                              </span>
+                            ) : (
+                              <span className="text-xs font-mono font-semibold text-brand-red mt-0.5 block">
+                                R$ {drink.price.toFixed(2)}
+                              </span>
+                            )}
                           </div>
                         </div>
 
                         {/* Stepper */}
                         <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-slate-200">
-                          {qty > 0 ? (
+                          {isProductDisabled ? (
+                            <button
+                              type="button"
+                              disabled
+                              className="h-6 px-2.5 flex items-center gap-1 bg-slate-200 text-slate-400 rounded-md text-[10px] font-black cursor-not-allowed"
+                            >
+                              Indisponível
+                            </button>
+                          ) : qty > 0 ? (
                             <>
                               <button
                                 type="button"
@@ -666,50 +789,63 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
           </button>
 
           {/* Forward or Add Button */}
-          {currentStep < 4 ? (
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              type="button"
-              onClick={handleNextStep}
-              className="flex-1 bg-brand-red hover:bg-brand-red-dark text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md hover:shadow-lg transition-all cursor-pointer focus:ring-2 focus:ring-brand-amber/40"
-            >
-              <span>Avançar Passo</span>
-              <ArrowRight className="w-4 h-4" />
-            </motion.button>
-          ) : (
-            <div className="flex-1 flex items-center gap-2">
-              
-              {/* Hot dog quantity adjust */}
-              <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
+          {(() => {
+            const allProteinsDisabled = disabledItems.includes('boi') && disabledItems.includes('frango') && disabledItems.includes('calabresa');
+            return currentStep < 4 ? (
+              <button
+                type="button"
+                onClick={handleNextStep}
+                disabled={allProteinsDisabled}
+                className={`flex-1 font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md transition-all ${
+                  allProteinsDisabled
+                    ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-40'
+                    : 'bg-brand-red hover:bg-brand-red-dark text-white hover:shadow-lg cursor-pointer focus:ring-2 focus:ring-brand-amber/40'
+                }`}
+              >
+                <span>Avançar Passo</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <div className="flex-1 flex items-center gap-2">
+                
+                {/* Hot dog quantity adjust */}
+                <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={allProteinsDisabled}
+                    className="w-8 h-8 flex items-center justify-center bg-white hover:bg-stone-50 text-slate-800 rounded-lg shadow-2xs border border-stone-200/50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-6 text-center font-bold font-mono text-slate-800 text-xs">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => setQuantity(quantity + 1)}
+                    disabled={allProteinsDisabled}
+                    className="w-8 h-8 flex items-center justify-center bg-white hover:bg-stone-50 text-slate-800 rounded-lg shadow-2xs border border-stone-200/50 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Add to Cart button */}
                 <button
                   type="button"
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 flex items-center justify-center bg-white hover:bg-stone-50 text-slate-800 rounded-lg shadow-2xs border border-stone-200/50 cursor-pointer"
+                  onClick={handleAdd}
+                  disabled={allProteinsDisabled}
+                  className={`flex-1 font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md transition-all ${
+                    allProteinsDisabled
+                      ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-40'
+                      : 'bg-brand-red hover:bg-brand-red-dark text-white hover:shadow-lg cursor-pointer focus:ring-2 focus:ring-brand-amber/40'
+                  }`}
                 >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="w-6 text-center font-bold font-mono text-slate-800 text-xs">{quantity}</span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center bg-white hover:bg-stone-50 text-slate-800 rounded-lg shadow-2xs border border-stone-200/50 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
+                  <ShoppingCart className="w-4 h-4" />
+                  <span>Adicionar • R$ {totalPrice.toFixed(2)}</span>
                 </button>
               </div>
-
-              {/* Add to Cart button */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                type="button"
-                onClick={handleAdd}
-                className="flex-1 bg-brand-red hover:bg-brand-red-dark text-white font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md hover:shadow-lg transition-all cursor-pointer focus:ring-2 focus:ring-brand-amber/40"
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span>Adicionar • R$ {totalPrice.toFixed(2)}</span>
-              </motion.button>
-            </div>
-          )}
+            );
+          })()}
 
         </div>
 

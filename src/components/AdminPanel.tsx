@@ -49,9 +49,11 @@ interface SavedOrder {
 
 interface AdminPanelProps {
   onClose: () => void;
+  disabledItems: string[];
+  onToggleDisabledItem: (itemKey: string) => void;
 }
 
-export default function AdminPanel({ onClose }: AdminPanelProps) {
+export default function AdminPanel({ onClose, disabledItems, onToggleDisabledItem }: AdminPanelProps) {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return sessionStorage.getItem('divino_admin_auth') === 'true';
@@ -481,11 +483,155 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
         {/* SUBTAB 3: CONFIGURAÇÕES */}
         {activeSubTab === 'config' && (
-          <div className="space-y-4 text-left">
+          <div className="space-y-5 text-left">
             <h3 className="font-extrabold text-xs text-slate-700 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
               <Settings className="w-4 h-4 text-slate-650" />
               Configuração do Sistema
             </h3>
+
+            {/* Seção de Gerenciamento de Estoque */}
+            <div className="bg-white border border-slate-150 rounded-3xl p-4 md:p-5 shadow-xs space-y-5">
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-slate-800 tracking-tight flex items-center gap-1.5">
+                  <span>📦 Gerenciar Disponibilidade de Itens</span>
+                </h4>
+                <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">Desative itens esgotados. Eles serão imediatamente bloqueados para seleção no cardápio do cliente.</p>
+              </div>
+
+              <div className="space-y-4">
+                {/* 1. Proteínas */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Proteínas (Passo 1)</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      { key: 'boi', label: 'Salsicha de Boi' },
+                      { key: 'frango', label: 'Frango Desfiado' },
+                      { key: 'calabresa', label: 'Calabresa Defumada' }
+                    ].map((item) => {
+                      const isAvailable = !disabledItems.includes(item.key);
+                      return (
+                        <div key={item.key} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                          <span className="text-xs font-bold text-slate-750">{item.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => onToggleDisabledItem(item.key)}
+                            className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer ${
+                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                            }`}
+                          >
+                            <div
+                              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ${
+                                isAvailable ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Ingredientes Básicos */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Ingredientes Básicos (Passo 2)</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { key: 'milhoErvilha', label: 'Milho & Ervilha' },
+                      { key: 'vinagrete', label: 'Vinagrete' },
+                      { key: 'cenoura', label: 'Cenoura' },
+                      { key: 'batataPalha', label: 'Batata Palha' }
+                    ].map((item) => {
+                      const isAvailable = !disabledItems.includes(item.key);
+                      return (
+                        <div key={item.key} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                          <span className="text-[11px] font-bold text-slate-700 truncate mr-1" title={item.label}>{item.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => onToggleDisabledItem(item.key)}
+                            className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 shrink-0 cursor-pointer ${
+                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                            }`}
+                          >
+                            <div
+                              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ${
+                                isAvailable ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 3. Extras */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Extras & Molhos (Passo 2)</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { key: 'queijo', label: 'Queijo Muçarela' },
+                      { key: 'molhoEspecial', label: 'Molho Especial' },
+                      { key: 'molhoVerde', label: 'Molho Verde' },
+                      { key: 'molhoBarbecue', label: 'Molho Barbecue' }
+                    ].map((item) => {
+                      const isAvailable = !disabledItems.includes(item.key);
+                      return (
+                        <div key={item.key} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                          <span className="text-[11px] font-bold text-slate-700 truncate mr-1" title={item.label}>{item.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => onToggleDisabledItem(item.key)}
+                            className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 shrink-0 cursor-pointer ${
+                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                            }`}
+                          >
+                            <div
+                              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ${
+                                isAvailable ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 4. Bebidas */}
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Bebidas (Passo 3)</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { key: 'coca_lata', label: 'Coca-Cola' },
+                      { key: 'guarana_lata', label: 'Guaraná' },
+                      { key: 'fanta_lata', label: 'Fanta Laranja' },
+                      { key: 'suco_laranja', label: 'Suco Laranja' },
+                      { key: 'agua', label: 'Água Mineral' }
+                    ].map((item) => {
+                      const isAvailable = !disabledItems.includes(item.key);
+                      return (
+                        <div key={item.key} className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                          <span className="text-[11px] font-bold text-slate-700 truncate mr-1" title={item.label}>{item.label}</span>
+                          <button
+                            type="button"
+                            onClick={() => onToggleDisabledItem(item.key)}
+                            className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 shrink-0 cursor-pointer ${
+                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                            }`}
+                          >
+                            <div
+                              className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 ${
+                                isAvailable ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
             
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">
               <div className="flex items-start gap-2">

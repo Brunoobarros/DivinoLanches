@@ -25,6 +25,27 @@ export default function App() {
   // Navigation tabs state: 'montar' | 'admin' | 'carrinho'
   const [activeTab, setActiveTab] = useState<'montar' | 'admin' | 'carrinho'>('montar');
 
+  // Disabled items (out of stock) state
+  const [disabledItems, setDisabledItems] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem('divino_lanches_disabled_items');
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      console.error('Erro ao carregar itens desativados', e);
+      return [];
+    }
+  });
+
+  const handleToggleDisabledItem = (itemKey: string) => {
+    setDisabledItems((prev) => {
+      const updated = prev.includes(itemKey)
+        ? prev.filter((k) => k !== itemKey)
+        : [...prev, itemKey];
+      localStorage.setItem('divino_lanches_disabled_items', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // Master Cart State
   const [cart, setCart] = useState<Cart>(() => {
     try {
@@ -176,6 +197,7 @@ export default function App() {
                       onAddHotDog={handleAddHotDog} 
                       onNavigateToCart={() => setActiveTab('carrinho')}
                       onUpdateDrinkQty={handleUpdateDrinkQty}
+                      disabledItems={disabledItems}
                     />
                   </motion.div>
                 )}
@@ -188,7 +210,11 @@ export default function App() {
                     exit={{ opacity: 0, y: -15 }}
                     className="p-0.5"
                   >
-                    <AdminPanel onClose={() => setActiveTab('montar')} />
+                    <AdminPanel 
+                      onClose={() => setActiveTab('montar')} 
+                      disabledItems={disabledItems}
+                      onToggleDisabledItem={handleToggleDisabledItem}
+                    />
                   </motion.div>
                 )}
 
@@ -261,10 +287,15 @@ export default function App() {
                   onAddHotDog={handleAddHotDog} 
                   onNavigateToCart={() => setActiveTab('carrinho')}
                   onUpdateDrinkQty={handleUpdateDrinkQty}
+                  disabledItems={disabledItems}
                 />
               )}
               {activeTab === 'admin' && (
-                <AdminPanel onClose={() => setActiveTab('montar')} />
+                <AdminPanel 
+                  onClose={() => setActiveTab('montar')} 
+                  disabledItems={disabledItems}
+                  onToggleDisabledItem={handleToggleDisabledItem}
+                />
               )}
               {activeTab === 'carrinho' && (
                 <OrderSummaryAndCheckout
