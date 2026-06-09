@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Info
 } from 'lucide-react';
+import { PROTEIN_LABELS } from '../constants';
 
 interface SavedOrder {
   id: string;
@@ -116,9 +117,10 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const averageTicket = totalOrdersCount > 0 ? totalRevenue / totalOrdersCount : 0;
 
   // Breakdown metrics
-  const boiCount = orders.reduce((sum, o) => sum + o.hotDogs.reduce((s, h) => s + (h.type === 'boi' ? h.quantity : 0), 0), 0);
-  const frangoCount = orders.reduce((sum, o) => sum + o.hotDogs.reduce((s, h) => s + (h.type === 'frango' ? h.quantity : 0), 0), 0);
-  const totalDogs = boiCount + frangoCount;
+  const boiCount = orders.reduce((sum, o) => sum + o.hotDogs.reduce((s, h) => s + (h.type.includes('boi') ? h.quantity : 0), 0), 0);
+  const frangoCount = orders.reduce((sum, o) => sum + o.hotDogs.reduce((s, h) => s + (h.type.includes('frango') ? h.quantity : 0), 0), 0);
+  const calabresaCount = orders.reduce((sum, o) => sum + o.hotDogs.reduce((s, h) => s + (h.type.includes('calabresa') ? h.quantity : 0), 0), 0);
+  const totalDogs = boiCount + frangoCount + calabresaCount;
 
   const deliveryCount = orders.filter(o => o.orderType === 'entrega').length;
   const pickupCount = orders.filter(o => o.orderType === 'retirada').length;
@@ -328,7 +330,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     <div className="space-y-1.5 text-[11px] text-slate-650">
                       {o.hotDogs.map((dog, i) => (
                         <p key={i} className="leading-snug">
-                          🌭 <strong>{dog.quantity}x Dog de {dog.type.toUpperCase()}</strong> - R$ {(dog.price * dog.quantity).toFixed(2)}
+                          🌭 <strong>{dog.quantity}x Dog de {PROTEIN_LABELS[dog.type] || dog.type}</strong> - R$ {(dog.price * dog.quantity).toFixed(2)}
                           <br />
                           <span className="text-[9.5px] text-slate-450 italic ml-4 block">{dog.details}</span>
                         </p>
@@ -391,23 +393,31 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 <div>
                   <div className="flex justify-between text-xs font-bold text-slate-600 mb-1">
                     <span>🌭 Escolha da Proteína</span>
-                    <span className="font-mono">{boiCount}x Boi ({totalDogs > 0 ? Math.round((boiCount/totalDogs)*100) : 0}%) / {frangoCount}x Frango</span>
+                    <span className="font-mono">
+                      {boiCount}x Boi / {frangoCount}x Frango / {calabresaCount}x Calabresa
+                    </span>
                   </div>
                   <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden flex">
                     <div 
                       className="bg-brand-red h-full" 
                       style={{ width: `${totalDogs > 0 ? (boiCount / totalDogs) * 100 : 0}%` }}
-                      title="Boi"
+                      title={`Boi: ${totalDogs > 0 ? Math.round((boiCount/totalDogs)*100) : 0}%`}
                     />
                     <div 
                       className="bg-brand-amber h-full" 
                       style={{ width: `${totalDogs > 0 ? (frangoCount / totalDogs) * 100 : 0}%` }}
-                      title="Frango"
+                      title={`Frango: ${totalDogs > 0 ? Math.round((frangoCount/totalDogs)*100) : 0}%`}
+                    />
+                    <div 
+                      className="bg-orange-600 h-full" 
+                      style={{ width: `${totalDogs > 0 ? (calabresaCount / totalDogs) * 100 : 0}%` }}
+                      title={`Calabresa: ${totalDogs > 0 ? Math.round((calabresaCount/totalDogs)*100) : 0}%`}
                     />
                   </div>
-                  <div className="flex gap-4 mt-1 text-[9px] text-slate-400 font-bold uppercase">
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 bg-brand-red rounded-full" /> Salsicha de Boi</span>
-                    <span className="flex items-center gap-1"><span className="w-2 h-2 bg-brand-amber rounded-full" /> Frango Desfiado</span>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-1.5 text-[9px] text-slate-400 font-bold uppercase">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 bg-brand-red rounded-full" /> Salsicha de Boi ({totalDogs > 0 ? Math.round((boiCount/totalDogs)*100) : 0}%)</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 bg-brand-amber rounded-full" /> Frango Desfiado ({totalDogs > 0 ? Math.round((frangoCount/totalDogs)*100) : 0}%)</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 bg-orange-600 rounded-full" /> Calabresa ({totalDogs > 0 ? Math.round((calabresaCount/totalDogs)*100) : 0}%)</span>
                   </div>
                 </div>
 

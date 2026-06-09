@@ -4,7 +4,7 @@ import HotDogCustomizer from './components/HotDogCustomizer';
 import AdminPanel from './components/AdminPanel';
 import OrderSummaryAndCheckout from './components/OrderSummaryAndCheckout';
 import { Cart, HotDogItem, DrinkCartItem } from './types';
-import { DRINKS_MENU } from './constants';
+import { DRINKS_MENU, PROTEIN_LABELS } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Crown, 
@@ -303,8 +303,8 @@ export default function App() {
                   {cart.hotDogs.map((d) => (
                     <div key={d.id} className="text-xs pb-2 border-b border-dashed border-stone-100 flex items-center justify-between gap-1">
                       <div>
-                        <p className="font-black text-slate-800 capitalize">
-                          {d.quantity}x Dog de {d.type}
+                        <p className="font-black text-slate-800">
+                          {d.quantity}x Dog de {PROTEIN_LABELS[d.type] || d.type}
                         </p>
                         <p className="text-[10px] text-slate-400 line-clamp-1">{d.notes || 'Sem observações'}</p>
                       </div>

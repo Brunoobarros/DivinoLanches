@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HotDogType, BaseToppings, ExtraToppings, HotDogItem } from '../types';
-import { HOTDOG_PRICES, EXTRA_PRICES, DRINKS_MENU } from '../constants';
+import { HOTDOG_PRICES, EXTRA_PRICES, DRINKS_MENU, PROTEIN_LABELS } from '../constants';
 import HotDogVisualBuilder from './HotDogVisualBuilder';
 import { Plus, Minus, ShoppingCart, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
@@ -54,6 +54,38 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
       }
       return { ...prev, [drinkId]: next };
     });
+  };
+
+  const getSelectedProteins = (): ('boi' | 'frango' | 'calabresa')[] => {
+    if (type === 'boi') return ['boi'];
+    if (type === 'frango') return ['frango'];
+    if (type === 'calabresa') return ['calabresa'];
+    if (type === 'boi_frango') return ['boi', 'frango'];
+    if (type === 'boi_calabresa') return ['boi', 'calabresa'];
+    if (type === 'frango_calabresa') return ['frango', 'calabresa'];
+    return ['boi'];
+  };
+
+  const handleToggleProtein = (protein: 'boi' | 'frango' | 'calabresa') => {
+    const current = getSelectedProteins();
+    const exists = current.includes(protein);
+    
+    if (exists) {
+      if (current.length === 1) return; // Mantém pelo menos um selecionado
+      const next = current.filter(p => p !== protein);
+      setType(next[0] as HotDogType);
+    } else {
+      if (current.length >= 2) return; // Limite de 2 sabores
+      const next = [...current, protein].sort();
+      
+      if (next.includes('boi') && next.includes('frango')) {
+        setType('boi_frango');
+      } else if (next.includes('boi') && next.includes('calabresa')) {
+        setType('boi_calabresa');
+      } else if (next.includes('frango') && next.includes('calabresa')) {
+        setType('frango_calabresa');
+      }
+    }
   };
 
   // Live price calculation
@@ -256,52 +288,109 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     Passo 1: Qual a proteína do seu cachorro-quente?
                   </h3>
                   <p className="text-xs text-slate-500 mb-4">
-                    Selecione a sua carne favorita para começar a montar o dogão divino.
+                    Selecione 1 ou até 2 carnes para o seu dogão (se escolher 2, faremos meio a meio!).
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setType('boi')}
-                    className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      type === 'boi'
-                        ? 'border-brand-red bg-brand-red/5 text-brand-red font-bold'
-                        : 'border-slate-150 hover:border-slate-300 text-slate-600 bg-stone-50/50'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <p className="text-sm font-extrabold text-slate-900">Carne de Boi</p>
-                      <p className="text-xs text-slate-500 leading-tight">O clássico absoluto e de dar água na boca.</p>
-                      <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                        R$ {HOTDOG_PRICES.boi.toFixed(2)}
-                      </span>
-                    </div>
-                    {type === 'boi' && (
-                      <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-xs">✓</span>
-                    )}
-                  </button>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Opção 1: Boi */}
+                  {(() => {
+                    const isSelected = type === 'boi' || type === 'boi_frango' || type === 'boi_calabresa';
+                    const currentSelected = getSelectedProteins();
+                    const isMaxReached = currentSelected.length >= 2;
+                    const isDisabled = isMaxReached && !isSelected;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => !isDisabled && handleToggleProtein('boi')}
+                        disabled={isDisabled}
+                        className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                          isSelected
+                            ? 'border-brand-red bg-brand-red/5 text-brand-red font-bold cursor-pointer'
+                            : isDisabled
+                              ? 'border-slate-100 opacity-40 text-slate-400 bg-stone-50/30 cursor-not-allowed'
+                              : 'border-slate-155 hover:border-slate-300 text-slate-600 bg-stone-50/50 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-extrabold text-slate-900">Carne de Boi</p>
+                          <p className="text-xs text-slate-500 leading-tight">Salsicha tradicional bovina grelhada.</p>
+                          <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                            R$ {HOTDOG_PRICES.boi.toFixed(2)}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-[10px]">✓</span>
+                        )}
+                      </button>
+                    );
+                  })()}
 
-                  <button
-                    type="button"
-                    onClick={() => setType('frango')}
-                    className={`relative p-5 rounded-2xl border-2 text-left transition-all cursor-pointer ${
-                      type === 'frango'
-                        ? 'border-brand-red bg-brand-red/5 text-brand-red font-bold'
-                        : 'border-slate-150 hover:border-slate-300 text-slate-650 bg-stone-50/50'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <p className="text-sm font-extrabold text-slate-900">Frango Desfiado Cremoso</p>
-                      <p className="text-xs text-slate-500 leading-tight">Cozido lentamente e temperado com ervas.</p>
-                      <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                        R$ {HOTDOG_PRICES.frango.toFixed(2)}
-                      </span>
-                    </div>
-                    {type === 'frango' && (
-                      <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-xs">✓</span>
-                    )}
-                  </button>
+                  {/* Opção 2: Frango */}
+                  {(() => {
+                    const isSelected = type === 'frango' || type === 'boi_frango' || type === 'frango_calabresa';
+                    const currentSelected = getSelectedProteins();
+                    const isMaxReached = currentSelected.length >= 2;
+                    const isDisabled = isMaxReached && !isSelected;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => !isDisabled && handleToggleProtein('frango')}
+                        disabled={isDisabled}
+                        className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                          isSelected
+                            ? 'border-brand-red bg-brand-red/5 text-brand-red font-bold cursor-pointer'
+                            : isDisabled
+                              ? 'border-slate-100 opacity-40 text-slate-400 bg-stone-50/30 cursor-not-allowed'
+                              : 'border-slate-155 hover:border-slate-300 text-slate-650 bg-stone-50/50 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-extrabold text-slate-900">Frango Desfiado</p>
+                          <p className="text-xs text-slate-500 leading-tight">Frango desfiado cremoso e temperado.</p>
+                          <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                            R$ {HOTDOG_PRICES.frango.toFixed(2)}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-[10px]">✓</span>
+                        )}
+                      </button>
+                    );
+                  })()}
+
+                  {/* Opção 3: Calabresa */}
+                  {(() => {
+                    const isSelected = type === 'calabresa' || type === 'boi_calabresa' || type === 'frango_calabresa';
+                    const currentSelected = getSelectedProteins();
+                    const isMaxReached = currentSelected.length >= 2;
+                    const isDisabled = isMaxReached && !isSelected;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => !isDisabled && handleToggleProtein('calabresa')}
+                        disabled={isDisabled}
+                        className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                          isSelected
+                            ? 'border-brand-red bg-brand-red/5 text-brand-red font-bold cursor-pointer'
+                            : isDisabled
+                              ? 'border-slate-100 opacity-40 text-slate-400 bg-stone-50/30 cursor-not-allowed'
+                              : 'border-slate-155 hover:border-slate-300 text-slate-650 bg-stone-50/50 cursor-pointer'
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-extrabold text-slate-900">Calabresa Defumada</p>
+                          <p className="text-xs text-slate-500 leading-tight">Calabresa grelhada com cebola na chapa.</p>
+                          <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                            R$ {HOTDOG_PRICES.calabresa.toFixed(2)}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <span className="absolute top-3 right-3 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center text-white text-[10px]">✓</span>
+                        )}
+                      </button>
+                    );
+                  })()}
                 </div>
               </motion.div>
             )}
@@ -527,7 +616,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     <div>
                       <span className="text-slate-500 font-medium">Dogão personalizado:</span>
                       <p className="font-extrabold text-brand-red capitalize">
-                        {type === 'boi' ? 'Salsicha de Boi' : 'Frango Desfiado'} {quantity}x
+                        {PROTEIN_LABELS[type] || type} {quantity}x
                       </p>
                     </div>
                     <div className="text-right">

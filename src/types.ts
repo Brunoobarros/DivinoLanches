@@ -1,4 +1,4 @@
-export type HotDogType = 'frango' | 'boi';
+export type HotDogType = 'boi' | 'frango' | 'calabresa' | 'boi_frango' | 'boi_calabresa' | 'frango_calabresa';
 
 export interface BaseToppings {
   milhoErvilha: boolean;

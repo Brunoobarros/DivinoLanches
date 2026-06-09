@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder } from '../types';
-import { NEIGHBORHOODS, WHATSAPP_NUMBER } from '../constants';
+import { NEIGHBORHOODS, WHATSAPP_NUMBER, PROTEIN_LABELS } from '../constants';
 import { ShoppingCart, Trash2, MapPin, CheckCircle, Smartphone, Send, DollarSign, Copy, AlertTriangle } from 'lucide-react';
 
 interface OrderSummaryAndCheckoutProps {
@@ -109,8 +109,8 @@ export default function OrderSummaryAndCheckout({
     
     // List Hot Dogs
     cart.hotDogs.forEach((dog, idx) => {
-      const label = dog.type === 'boi' ? 'Dog Salsicha de Boi' : 'Dog Frango Desfiado';
-      text += `• *${dog.quantity}x ${label}* - R$ ${(dog.price * dog.quantity).toFixed(2)}\n`;
+      const label = PROTEIN_LABELS[dog.type] || dog.type;
+      text += `• *${dog.quantity}x Dog de ${label}* - R$ ${(dog.price * dog.quantity).toFixed(2)}\n`;
       text += `  _Detalhe: ${formatHotDogIngredients(dog)}_\n\n`;
     });
 
@@ -338,7 +338,7 @@ export default function OrderSummaryAndCheckout({
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-black text-slate-800 uppercase tracking-tight">
-                    {dog.type === 'boi' ? '🌭 Dog de Boi' : '🍗 Dog de Frango'}
+                    {dog.type === 'boi' ? '🌭' : dog.type === 'frango' ? '🍗' : dog.type === 'calabresa' ? '🍕' : '✨'} Dog de {PROTEIN_LABELS[dog.type] || dog.type}
                   </span>
                   <span className="text-xs font-bold bg-amber-400/20 text-amber-900 border border-amber-300/30 px-1.5 py-0.5 rounded-sm">
                     R$ {dog.price.toFixed(2)}

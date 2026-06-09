@@ -1,8 +1,21 @@
 import { Drink, NeighborhoodFee } from './types';
 
 export const HOTDOG_PRICES = {
-  frango: 16.0,
   boi: 15.0,
+  frango: 16.0,
+  calabresa: 16.0,
+  boi_frango: 16.0,
+  boi_calabresa: 16.0,
+  frango_calabresa: 16.0,
+};
+
+export const PROTEIN_LABELS: Record<string, string> = {
+  boi: 'Salsicha de Boi',
+  frango: 'Frango Desfiado',
+  calabresa: 'Calabresa Defumada',
+  boi_frango: 'Misto (Boi & Frango)',
+  boi_calabresa: 'Misto (Boi & Calabresa)',
+  frango_calabresa: 'Misto (Frango & Calabresa)',
 };
 
 export const EXTRA_PRICES = {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HotDogType, BaseToppings, ExtraToppings } from '../types';
+import { PROTEIN_LABELS } from '../constants';
 
 interface HotDogVisualBuilderProps {
   type: HotDogType;
@@ -26,9 +27,9 @@ export default function HotDogVisualBuilder({
           style={{ transform: 'rotate(-2deg)' }}
         />
 
-        {/* Protein: Salsicha (Boi) or Frango Desfiado (Chicken) */}
-        <AnimatePresence mode="popLayout">
-          {type === 'boi' ? (
+        {/* Protein: Salsicha (Boi), Frango Desfiado (Chicken), and/or Calabresa */}
+        <AnimatePresence>
+          {(type === 'boi' || type === 'boi_frango' || type === 'boi_calabresa') && (
             <motion.div
               key="sausage"
               initial={{ y: -60, opacity: 0, rotate: -5 }}
@@ -38,14 +39,32 @@ export default function HotDogVisualBuilder({
               className="absolute w-60 h-8 bg-red-500 rounded-full z-20 bottom-12 border-t-2 border-red-400 border-b-2 border-red-600 shadow-inner"
               title="Salsicha de Boi"
             />
-          ) : (
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {(type === 'calabresa' || type === 'boi_calabresa' || type === 'frango_calabresa') && (
+            <motion.div
+              key="calabresa"
+              initial={{ y: -60, opacity: 0, rotate: 5 }}
+              animate={{ y: -2, opacity: 1, rotate: 1 }}
+              exit={{ y: 30, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="absolute w-60 h-8 bg-red-950 rounded-full z-21 bottom-13 border-t-2 border-red-800 border-b-2 border-stone-900 shadow-inner"
+              title="Calabresa Defumada"
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {(type === 'frango' || type === 'boi_frango' || type === 'frango_calabresa') && (
             <motion.div
               key="chicken"
               initial={{ y: -60, opacity: 0, scale: 0.9 }}
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 30, opacity: 0, scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              className="absolute w-56 h-10 bg-amber-400 rounded-full z-20 bottom-11 flex flex-wrap justify-around items-center px-4 overflow-hidden border border-amber-500 shadow-sm"
+              className="absolute w-56 h-10 bg-amber-400 rounded-full z-22 bottom-11 flex flex-wrap justify-around items-center px-4 overflow-hidden border border-amber-500 shadow-sm"
               title="Frango Cremoso Desfiado"
             >
               {/* Shredded texture look */}
@@ -224,7 +243,7 @@ export default function HotDogVisualBuilder({
         <span className="text-xs text-amber-900 bg-amber-100/60 px-3 py-1 rounded-full font-medium">
           Hot Dog de{' '}
           <strong className="text-red-700 capitalize font-bold">
-            {type === 'boi' ? 'Salsicha de Boi' : 'Frango Desfiado'}
+            {PROTEIN_LABELS[type] || type}
           </strong>
         </span>
       </div>
