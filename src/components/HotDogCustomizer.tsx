@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HotDogType, BaseToppings, ExtraToppings, HotDogItem } from '../types';
-import { HOTDOG_PRICES, EXTRA_PRICES } from '../constants';
+import { HOTDOG_PRICES, EXTRA_PRICES, DRINKS_MENU } from '../constants';
 import HotDogVisualBuilder from './HotDogVisualBuilder';
 import { Plus, Minus, ShoppingCart, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 
 interface HotDogCustomizerProps {
   onAddHotDog: (item: Omit<HotDogItem, 'id'>) => void;
   onNavigateToCart?: () => void;
+  onUpdateDrinkQty: (drinkId: string, delta: number) => void;
 }
 
-export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotDogCustomizerProps) {
+export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpdateDrinkQty }: HotDogCustomizerProps) {
   // Stepper state: 1, 2, 3, 4
   const [currentStep, setCurrentStep] = useState<number>(1);
 
@@ -31,6 +32,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [selectedDrinks, setSelectedDrinks] = useState<Record<string, number>>({});
 
   // Helper selectors
   const toggleBaseTopping = (key: keyof BaseToppings) => {
@@ -39,6 +41,19 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
 
   const toggleExtra = (key: keyof ExtraToppings) => {
     setExtras((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const updateLocalDrinkQty = (drinkId: string, delta: number) => {
+    setSelectedDrinks((prev) => {
+      const current = prev[drinkId] || 0;
+      const next = current + delta;
+      if (next <= 0) {
+        const copy = { ...prev };
+        delete copy[drinkId];
+        return copy;
+      }
+      return { ...prev, [drinkId]: next };
+    });
   };
 
   // Live price calculation
@@ -54,7 +69,17 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
   };
 
   const singlePrice = calculateSinglePrice();
-  const totalPrice = singlePrice * quantity;
+
+  // Calculate local drinks total price
+  const calculateLocalDrinksTotal = (): number => {
+    return Object.entries(selectedDrinks).reduce((sum, [drinkId, qty]) => {
+      const drink = DRINKS_MENU.find((d) => d.id === drinkId);
+      return sum + (drink ? drink.price : 0) * qty;
+    }, 0);
+  };
+  
+  const drinksTotal = calculateLocalDrinksTotal();
+  const totalPrice = singlePrice * quantity + drinksTotal;
 
   const handleNextStep = () => {
     if (currentStep < 4) {
@@ -78,6 +103,13 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
       price: singlePrice,
     });
 
+    // Add selected drinks to the master cart in App.tsx
+    Object.entries(selectedDrinks).forEach(([drinkId, qty]) => {
+      if (qty > 0) {
+        onUpdateDrinkQty(drinkId, qty);
+      }
+    });
+
     // Reset everything for next purchase
     setBaseToppings({
       milhoErvilha: true,
@@ -91,6 +123,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
       molhoVerde: false,
       molhoBarbecue: false,
     });
+    setSelectedDrinks({});
     setNotes('');
     setQuantity(1);
     setCurrentStep(1); // Back to beginning
@@ -104,8 +137,8 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
 
   const stepLabels = [
     { num: 1, title: 'Proteína', desc: 'Escolha a base do dogão' },
-    { num: 2, title: 'Básicos', desc: 'Ingredientes originais' },
-    { num: 3, title: 'Adicionais', desc: 'Queijo, batata e molhos' },
+    { num: 2, title: 'Ingredientes', desc: 'Básicos e adicionais' },
+    { num: 3, title: 'Bebidas', desc: 'Refrigerantes e sucos' },
     { num: 4, title: 'Confirmar', desc: 'Quantidade e notas' },
   ];
 
@@ -273,7 +306,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
               </motion.div>
             )}
 
-            {/* STEP 2: BASE TOPPINGS */}
+            {/* STEP 2: INGREDIENTES (BÁSICOS E ADICIONAIS) */}
             {currentStep === 2 && (
               <motion.div
                 key="step2"
@@ -282,49 +315,94 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                 exit={{ opacity: 0, x: -15 }}
                 transition={{ duration: 0.18 }}
               >
-                <div className="mb-2">
+                <div className="mb-3">
                   <h3 className="text-base font-extrabold text-slate-800">
-                    Passo 2: Acompanhamentos Básicos Inclusos
+                    Passo 2: Escolha os Ingredientes do seu Dogão
                   </h3>
-                  <p className="text-xs text-slate-500 mb-4">
-                    Já inclusos sem custo algum! Se não quiser algum específico, é só desmarcar clicando sobre ele.
+                  <p className="text-xs text-slate-500">
+                    Personalize seu lanche ativando ou desativando os itens inclusos e adicionando extras.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {[
-                    { key: 'milhoErvilha' as const, label: 'Milho & Ervilha Dupla', desc: 'Docinho e crocante' },
-                    { key: 'vinagrete' as const, label: 'Vinagrete Picadinho', desc: 'Tomate fresco e cebola' },
-                    { key: 'cenoura' as const, label: 'Cenoura Raladinha', desc: 'Fina e nutritiva' },
-                    { key: 'batataPalha' as const, label: 'Batata Palha Crocante', desc: 'Sempre fresquinha' },
-                  ].map(({ key, label, desc }) => {
-                    const isSelected = baseToppings[key];
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => toggleBaseTopping(key)}
-                        className={`p-3 rounded-xl flex flex-col items-center justify-center border text-center transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-amber-500/10 border-amber-400 text-amber-950 font-semibold'
-                            : 'bg-slate-50 border-slate-150 text-slate-400 line-through decoration-slate-350'
-                        }`}
-                      >
-                        <h4 className="text-xs font-bold leading-tight mb-1">{label}</h4>
-                        <p className="text-[10px] text-slate-500 mt-1 line-clamp-1">{isSelected ? desc : 'Removido'}</p>
-                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full tracking-wider mt-2 ${
-                          isSelected ? 'text-emerald-700 bg-emerald-100' : 'text-slate-450 bg-slate-150'
-                        }`}>
-                          {isSelected ? 'INCLUSO' : 'REMOVIDO'}
-                        </span>
-                      </button>
-                    );
-                  })}
+                <div className="max-h-[280px] overflow-y-auto pr-1 flex flex-col gap-4">
+                  {/* Básicos */}
+                  <div>
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
+                      Ingredientes Básicos (Já Inclusos)
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { key: 'milhoErvilha' as const, label: 'Milho & Ervilha Dupla', desc: 'Docinho e crocante' },
+                        { key: 'vinagrete' as const, label: 'Vinagrete Picadinho', desc: 'Tomate fresco e cebola' },
+                        { key: 'cenoura' as const, label: 'Cenoura Raladinha', desc: 'Fina e nutritiva' },
+                        { key: 'batataPalha' as const, label: 'Batata Palha Crocante', desc: 'Sempre fresquinha' },
+                      ].map(({ key, label, desc }) => {
+                        const isSelected = baseToppings[key];
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => toggleBaseTopping(key)}
+                            className={`p-2.5 rounded-xl flex flex-col items-center justify-center border text-center transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-brand-amber/10 border-brand-amber text-brand-amber font-semibold'
+                                : 'bg-slate-50 border-slate-150 text-slate-400 line-through decoration-slate-350'
+                            }`}
+                          >
+                            <h5 className="text-[11px] font-bold leading-tight mb-1">{label}</h5>
+                            <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full tracking-wider mt-1 ${
+                              isSelected ? 'text-emerald-700 bg-emerald-100' : 'text-slate-450 bg-slate-150'
+                            }`}>
+                              {isSelected ? 'INCLUSO' : 'REMOVIDO'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Adicionais Pagos */}
+                  <div>
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
+                      Adicionais de Sabor & Molhos (Opcionais)
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { key: 'queijo' as const, label: 'Queijo Mussarela Derretido', price: EXTRA_PRICES.queijo },
+                        { key: 'molhoEspecial' as const, label: 'Molho Especial Divino (Ervas)', price: EXTRA_PRICES.molhoEspecial },
+                        { key: 'molhoVerde' as const, label: 'Maionese Temperada Verde', price: EXTRA_PRICES.molhoVerde },
+                        { key: 'molhoBarbecue' as const, label: 'Molho Barbecue Defumado', price: EXTRA_PRICES.molhoBarbecue },
+                      ].map(({ key, label, price }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => toggleExtra(key)}
+                          className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all cursor-pointer ${
+                            extras[key]
+                              ? 'bg-brand-red/5 border-brand-red/30 text-brand-red font-bold'
+                              : 'bg-stone-50/50 border-slate-150 hover:border-slate-200 text-slate-600'
+                          }`}
+                        >
+                          <span className="text-xs font-semibold">{label}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] bg-brand-amber text-slate-950 px-2 py-0.5 rounded-md font-mono font-bold">
+                              +R$ {price.toFixed(2)}
+                            </span>
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                              extras[key] ? 'bg-brand-red border-brand-red text-white' : 'border-slate-300'
+                            }`}>
+                              {extras[key] && <span className="text-[9px]">✓</span>}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
 
-            {/* STEP 3: PAID EXTRAS & SAUCES */}
+            {/* STEP 3: BEBIDAS */}
             {currentStep === 3 && (
               <motion.div
                 key="step3"
@@ -333,45 +411,79 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                 exit={{ opacity: 0, x: -15 }}
                 transition={{ duration: 0.18 }}
               >
-                <div className="mb-2">
+                <div className="mb-3">
                   <h3 className="text-base font-extrabold text-slate-800">
-                    Passo 3: Seus Opcionais de Sabor & Molhos
+                    Passo 3: Acompanhe com uma Bebida Gelada
                   </h3>
-                  <p className="text-xs text-slate-500 mb-4">
-                    Deixe seu cachorro-quente ainda mais suculento agregando queijos, fritas ou molhos artesanais:
+                  <p className="text-xs text-slate-500">
+                    Selecione os refrigerantes, sucos ou água para acompanhar o seu dogão divino (opcional).
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[260px] overflow-y-auto pr-1">
-                  {[
-                    { key: 'queijo' as const, label: 'Queijo Mussarela Derretido', price: EXTRA_PRICES.queijo },
-                    { key: 'molhoEspecial' as const, label: 'Molho Especial Divino (Ervas)', price: EXTRA_PRICES.molhoEspecial },
-                    { key: 'molhoVerde' as const, label: 'Maionese Temperada Verde', price: EXTRA_PRICES.molhoVerde },
-                    { key: 'molhoBarbecue' as const, label: 'Molho Barbecue Defumado', price: EXTRA_PRICES.molhoBarbecue },
-                  ].map(({ key, label, price }) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => toggleExtra(key)}
-                      className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all cursor-pointer ${
-                        extras[key]
-                          ? 'bg-brand-red/5 border-brand-red/30 text-brand-red font-bold'
-                          : 'bg-stone-50/50 border-slate-150 hover:border-slate-250 text-slate-600'
-                      }`}
-                    >
-                      <span className="text-xs font-semibold">{label}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] bg-brand-amber text-slate-950 px-2 py-0.5 rounded-md font-mono font-bold">
-                          +R$ {price.toFixed(2)}
-                        </span>
-                        <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                          extras[key] ? 'bg-brand-red border-brand-red text-white' : 'border-slate-300'
-                        }`}>
-                          {extras[key] && <span className="text-[9px]">✓</span>}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1">
+                  {DRINKS_MENU.map((drink) => {
+                    const qty = selectedDrinks[drink.id] || 0;
+                    
+                    // Emoji mapping
+                    let emoji = '🥤';
+                    if (drink.id === 'guarana_lata') emoji = '🟢';
+                    if (drink.id === 'fanta_lata') emoji = '🍊';
+                    if (drink.id === 'suco_laranja') emoji = '🍹';
+                    if (drink.id === 'agua') emoji = '💧';
+
+                    return (
+                      <div
+                        key={drink.id}
+                        className={`flex items-center justify-between p-3 rounded-2xl border transition-all ${
+                          qty > 0 
+                            ? 'border-brand-red bg-brand-red/5 shadow-2xs' 
+                            : 'border-slate-100 bg-stone-50/50 hover:border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{emoji}</span>
+                          <div>
+                            <h4 className="text-xs font-bold text-slate-800 leading-tight">{drink.name}</h4>
+                            <span className="text-xs font-mono font-semibold text-brand-red mt-0.5 block">
+                              R$ {drink.price.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Stepper */}
+                        <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-xl border border-slate-200">
+                          {qty > 0 ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => updateLocalDrinkQty(drink.id, -1)}
+                                className="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-all cursor-pointer"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="w-5 text-center font-bold text-xs font-mono text-slate-850">{qty}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateLocalDrinkQty(drink.id, 1)}
+                                className="w-6 h-6 flex items-center justify-center bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-all cursor-pointer"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => updateLocalDrinkQty(drink.id, 1)}
+                              className="h-6 px-2.5 flex items-center gap-1 bg-brand-red hover:bg-brand-red-dark text-white rounded-md text-[10px] font-black transition-all cursor-pointer"
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                              <span>Adicionar</span>
+                            </button>
+                          )}
                         </div>
                       </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
@@ -391,7 +503,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                     Passo 4: Observações e Quantidade do Dogão
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Instruções para o chapeiro, quantidade de unidades desejadas e revisão de preço.
+                    Instruções para o chapeiro, quantidade de combos/unidades desejadas e revisão de preço.
                   </p>
                 </div>
 
@@ -410,17 +522,35 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
                 </div>
 
                 {/* Interactive configuration summary */}
-                <div className="p-3 bg-red-50/40 rounded-xl border border-red-100 flex items-center justify-between text-xs">
-                  <div>
-                    <span className="text-slate-500 font-medium">Dogão personalizado:</span>
-                    <p className="font-extrabold text-red-950 capitalize">
-                      {type === 'boi' ? 'Salsicha de Boi' : 'Frango Desfiado'}
-                    </p>
+                <div className="p-3 bg-brand-red/5 rounded-xl border border-brand-red/10 flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-slate-500 font-medium">Dogão personalizado:</span>
+                      <p className="font-extrabold text-brand-red capitalize">
+                        {type === 'boi' ? 'Salsicha de Boi' : 'Frango Desfiado'} {quantity}x
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-500 font-medium">Valor Unitário</span>
+                      <p className="font-mono font-bold text-slate-800">R$ {singlePrice.toFixed(2)}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-slate-500 font-medium">Valor Unitário</span>
-                    <p className="font-mono font-bold text-slate-800">R$ {singlePrice.toFixed(2)}</p>
-                  </div>
+
+                  {drinksTotal > 0 && (
+                    <div className="border-t border-brand-red/10 pt-2 flex flex-col gap-1">
+                      <span className="text-slate-500 font-medium text-[10px] font-black uppercase tracking-wider">Bebidas selecionadas no combo:</span>
+                      {Object.entries(selectedDrinks).map(([drinkId, qty]) => {
+                        const drink = DRINKS_MENU.find((d) => d.id === drinkId);
+                        if (!drink) return null;
+                        return (
+                          <div key={drinkId} className="flex justify-between text-[11px] text-slate-650">
+                            <span>{qty}x {drink.name}</span>
+                            <span className="font-mono font-medium">R$ {(drink.price * qty).toFixed(2)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -438,7 +568,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart }: HotD
             disabled={currentStep === 1}
             className={`px-4 py-3.5 rounded-2xl font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer ${
               currentStep === 1
-                ? 'opacity-40 text-slate-300 cursor-not-allowed'
+                ? 'opacity-40 text-slate-350 cursor-not-allowed'
                 : 'text-slate-600 hover:bg-slate-150 border border-slate-200'
             }`}
           >

@@ -175,6 +175,7 @@ export default function App() {
                     <HotDogCustomizer 
                       onAddHotDog={handleAddHotDog} 
                       onNavigateToCart={() => setActiveTab('carrinho')}
+                      onUpdateDrinkQty={handleUpdateDrinkQty}
                     />
                   </motion.div>
                 )}
@@ -262,6 +263,7 @@ export default function App() {
                 <HotDogCustomizer 
                   onAddHotDog={handleAddHotDog} 
                   onNavigateToCart={() => setActiveTab('carrinho')}
+                  onUpdateDrinkQty={handleUpdateDrinkQty}
                 />
               )}
               {activeTab === 'bebidas' && (
