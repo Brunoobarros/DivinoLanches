@@ -35,12 +35,12 @@ export default function Header() {
         </div>
 
         {/* Functioning hours on the Right */}
-        <div className="flex flex-wrap justify-center sm:justify-end gap-2.5 text-sm">
-          <div className="flex items-center gap-2 bg-black/20 backdrop-blur-xs px-4 py-2 rounded-2xl border border-white/10 shadow-inner">
-            <Clock className="w-4 h-4 text-brand-amber" />
-            <div>
-              <p className="text-[9px] text-red-200 font-bold uppercase tracking-wider leading-none mb-1">Funcionamento</p>
-              <p className="font-bold text-xs text-white font-mono leading-none">18:00 às 23:30</p>
+        <div className="shrink-0 text-sm">
+          <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-xs px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl sm:rounded-2xl border border-white/10 shadow-inner">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-amber shrink-0" />
+            <div className="text-left">
+              <p className="text-[7.5px] sm:text-[9px] text-red-200 font-bold uppercase tracking-wider leading-none mb-0.5 sm:mb-1">Funcionamento</p>
+              <p className="font-bold text-[10px] sm:text-xs text-white font-mono leading-none">18:00 às 23:30</p>
             </div>
           </div>
         </div>
