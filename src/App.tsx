@@ -187,7 +187,11 @@ export default function App() {
     <div className={`min-h-screen bg-linear-to-b from-stone-50 to-stone-100/90 text-slate-800 flex flex-col font-sans selection:bg-red-500 selection:text-white md:pb-8 ${isAdminMode ? 'pb-24' : 'pb-8'}`}>
       
       {/* 1. Header Banner */}
-      <Header />
+      <Header 
+        isAdminMode={isAdminMode} 
+        activeTab={activeTab} 
+        onNavigateToAdmin={() => setActiveTab('admin')} 
+      />
 
       {/* 3. Main Body Container */}
       <main className="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">

@@ -1,9 +1,15 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Clock } from 'lucide-react';
+import { Clock, Shield } from 'lucide-react';
 import logoImg from '../../assets/logo.png';
 
-export default function Header() {
+interface HeaderProps {
+  isAdminMode?: boolean;
+  activeTab?: 'montar' | 'admin' | 'carrinho';
+  onNavigateToAdmin?: () => void;
+}
+
+export default function Header({ isAdminMode, activeTab, onNavigateToAdmin }: HeaderProps) {
   return (
     <header 
       className="relative text-white overflow-hidden shadow-xl border-b-4 border-brand-amber"
@@ -35,7 +41,7 @@ export default function Header() {
         </div>
 
         {/* Functioning hours on the Right */}
-        <div className="shrink-0 text-sm">
+        <div className="shrink-0 text-sm flex items-center gap-2">
           <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-xs px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-xl sm:rounded-2xl border border-white/10 shadow-inner">
             <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-amber shrink-0" />
             <div className="text-left">
@@ -43,6 +49,22 @@ export default function Header() {
               <p className="font-bold text-[10px] sm:text-xs text-white font-mono leading-none">18:00 às 23:30</p>
             </div>
           </div>
+
+          {isAdminMode && onNavigateToAdmin && (
+            <button
+              type="button"
+              onClick={onNavigateToAdmin}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl sm:rounded-2xl border transition-all cursor-pointer text-[10px] sm:text-xs font-bold ${
+                activeTab === 'admin'
+                  ? 'bg-brand-amber text-slate-950 border-brand-amber shadow-md'
+                  : 'bg-black/30 text-white border-white/10 hover:bg-black/55'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+              <span className="hidden sm:inline">Painel Admin</span>
+              <span className="sm:hidden">Admin</span>
+            </button>
+          )}
         </div>
       </div>
     </header>
