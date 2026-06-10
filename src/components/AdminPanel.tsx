@@ -363,7 +363,7 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
                       ))}
                       {o.drinks.map((dr, i) => (
                         <p key={i}>
-                          🥤 <strong>{dr.quantity}x {dr.name}</strong> - R$ {(dr.price * dr.quantity).toFixed(2)}
+                          <strong>{dr.quantity}x {dr.name}</strong> - R$ {(dr.price * dr.quantity).toFixed(2)}
                         </p>
                       ))}
                     </div>

@@ -372,7 +372,6 @@ export default function OrderSummaryAndCheckout({
           {cart.drinks.map((drink) => (
             <div key={drink.id} className="flex gap-3 justify-between p-3.5 rounded-2xl bg-linear-to-r from-emerald-50/10 to-teal-50/10 border border-teal-100/40 shadow-2xs">
               <div className="flex-1 flex items-center gap-2">
-                <span className="text-base">🍹</span>
                 <div>
                   <h4 className="text-sm font-bold text-slate-800 capitalize leading-none">{drink.name}</h4>
                   <span className="text-xs text-slate-500 mt-1 block">R$ {drink.price.toFixed(2)} cada</span>

@@ -571,13 +571,6 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     const qty = selectedDrinks[drink.id] || 0;
                     const isProductDisabled = disabledItems.includes(drink.id);
                     
-                    // Emoji mapping
-                    let emoji = '🥤';
-                    if (drink.id === 'guarana_lata') emoji = '🟢';
-                    if (drink.id === 'fanta_lata') emoji = '🍊';
-                    if (drink.id === 'suco_laranja') emoji = '🍹';
-                    if (drink.id === 'agua') emoji = '💧';
-
                     return (
                       <div
                         key={drink.id}
@@ -590,7 +583,6 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{emoji}</span>
                           <div>
                             <h4 className="text-xs font-bold text-slate-800 leading-tight">{drink.name}</h4>
                             {isProductDisabled ? (
