@@ -226,7 +226,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
 
   const stepLabels = [
     { num: 1, title: 'Proteína', desc: 'Escolha a base do dogão' },
-    { num: 2, title: 'Ingredientes', desc: 'Básicos e adicionais' },
+    { num: 2, title: 'Ingredientes', desc: 'Ingredientes inclusos' },
     { num: 3, title: 'Bebidas', desc: 'Refrigerantes e sucos' },
     { num: 4, title: 'Confirmar', desc: 'Quantidade e notas' },
   ];
@@ -498,7 +498,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     Passo 2: Escolha os Ingredientes do seu Dogão
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Personalize seu lanche ativando ou desativando os itens inclusos e adicionando extras.
+                    Personalize seu lanche ativando ou desativando os ingredientes inclusos do dogão.
                   </p>
                 </div>
 
@@ -539,55 +539,6 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                             }`}>
                               {isProductDisabled ? 'ESGOTADO' : isSelected ? 'INCLUSO' : 'REMOVIDO'}
                             </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Adicionais Pagos */}
-                  <div>
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
-                      Adicionais de Sabor & Molhos (Opcionais)
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {[
-                        { key: 'queijo' as const, label: 'Queijo Mussarela Derretido', price: EXTRA_PRICES.queijo },
-                        { key: 'molhoEspecial' as const, label: 'Molho Especial Divino (Ervas)', price: EXTRA_PRICES.molhoEspecial },
-                        { key: 'molhoVerde' as const, label: 'Maionese Temperada Verde', price: EXTRA_PRICES.molhoVerde },
-                        { key: 'molhoBarbecue' as const, label: 'Molho Barbecue Defumado', price: EXTRA_PRICES.molhoBarbecue },
-                      ].map(({ key, label, price }) => {
-                        const isProductDisabled = disabledItems.includes(key);
-                        const isSelected = extras[key] && !isProductDisabled;
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => !isProductDisabled && toggleExtra(key)}
-                            disabled={isProductDisabled}
-                            className={`flex items-center justify-between p-3 rounded-xl border text-sm transition-all ${
-                              isProductDisabled
-                                ? 'bg-slate-100 opacity-40 border-slate-200 text-slate-450 cursor-not-allowed line-through'
-                                : isSelected
-                                  ? 'bg-brand-red/5 border-brand-red/30 text-brand-red font-bold cursor-pointer'
-                                  : 'bg-stone-50/50 border-slate-150 hover:border-slate-200 text-slate-600 cursor-pointer'
-                            }`}
-                          >
-                            <span className="text-xs font-semibold">
-                              {label} {isProductDisabled && <span className="text-red-650 font-bold ml-1 text-[10px]">(Esgotado)</span>}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] bg-brand-amber text-slate-950 px-2 py-0.5 rounded-md font-mono font-bold">
-                                +R$ {price.toFixed(2)}
-                              </span>
-                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                                isProductDisabled
-                                  ? 'bg-slate-200 border-slate-350'
-                                  : isSelected ? 'bg-brand-red border-brand-red text-white' : 'border-slate-300'
-                              }`}>
-                                {isSelected && <span className="text-[9px]">✓</span>}
-                              </div>
-                            </div>
                           </button>
                         );
                       })}
