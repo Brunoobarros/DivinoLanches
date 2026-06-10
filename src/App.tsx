@@ -30,7 +30,8 @@ export default function App() {
     try {
       const params = new URLSearchParams(window.location.search);
       const isParamAdmin = params.get('admin') === 'true';
-      if (isParamAdmin) {
+      const isAuthAdmin = sessionStorage.getItem('divino_admin_auth') === 'true';
+      if (isParamAdmin || isAuthAdmin) {
         sessionStorage.setItem('divino_admin_mode', 'true');
         return true;
       }
@@ -221,7 +222,7 @@ export default function App() {
                   </motion.div>
                 )}
 
-                {isAdminMode && activeTab === 'admin' && (
+                {activeTab === 'admin' && (
                   <motion.div
                     key="admin"
                     initial={{ opacity: 0, y: 15 }}
@@ -233,6 +234,8 @@ export default function App() {
                       onClose={() => setActiveTab('montar')} 
                       disabledItems={disabledItems}
                       onToggleDisabledItem={handleToggleDisabledItem}
+                      onLoginSuccess={() => setIsAdminMode(true)}
+                      onLogout={() => setIsAdminMode(false)}
                     />
                   </motion.div>
                 )}
@@ -312,11 +315,13 @@ export default function App() {
                   disabledItems={disabledItems}
                 />
               )}
-              {isAdminMode && activeTab === 'admin' && (
+              {activeTab === 'admin' && (
                 <AdminPanel 
                   onClose={() => setActiveTab('montar')} 
                   disabledItems={disabledItems}
                   onToggleDisabledItem={handleToggleDisabledItem}
+                  onLoginSuccess={() => setIsAdminMode(true)}
+                  onLogout={() => setIsAdminMode(false)}
                 />
               )}
               {activeTab === 'carrinho' && (

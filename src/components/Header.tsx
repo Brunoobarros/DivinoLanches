@@ -50,7 +50,7 @@ export default function Header({ isAdminMode, activeTab, onNavigateToAdmin }: He
             </div>
           </div>
 
-          {isAdminMode && onNavigateToAdmin && (
+          {onNavigateToAdmin && (
             <button
               type="button"
               onClick={onNavigateToAdmin}

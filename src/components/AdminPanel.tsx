@@ -51,9 +51,11 @@ interface AdminPanelProps {
   onClose: () => void;
   disabledItems: string[];
   onToggleDisabledItem: (itemKey: string) => void;
+  onLoginSuccess?: () => void;
+  onLogout?: () => void;
 }
 
-export default function AdminPanel({ onClose, disabledItems, onToggleDisabledItem }: AdminPanelProps) {
+export default function AdminPanel({ onClose, disabledItems, onToggleDisabledItem, onLoginSuccess, onLogout }: AdminPanelProps) {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return sessionStorage.getItem('divino_admin_auth') === 'true';
@@ -98,6 +100,9 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
     if (password === 'admin') {
       setIsLoggedIn(true);
       sessionStorage.setItem('divino_admin_auth', 'true');
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
     } else {
       setError('Senha incorreta! Tente novamente.');
       setPassword('');
@@ -107,6 +112,9 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
   const handleLogout = () => {
     setIsLoggedIn(false);
     sessionStorage.removeItem('divino_admin_auth');
+    if (onLogout) {
+      onLogout();
+    }
     onClose();
   };
 
