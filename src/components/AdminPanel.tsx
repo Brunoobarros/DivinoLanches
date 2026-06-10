@@ -535,7 +535,7 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
                             type="button"
                             onClick={() => onToggleDisabledItem(item.key)}
                             className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 cursor-pointer ${
-                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                              isAvailable ? 'bg-brand-red' : 'bg-slate-350'
                             }`}
                           >
                             <div
@@ -568,7 +568,7 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
                             type="button"
                             onClick={() => onToggleDisabledItem(item.key)}
                             className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 shrink-0 cursor-pointer ${
-                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                              isAvailable ? 'bg-brand-red' : 'bg-slate-350'
                             }`}
                           >
                             <div
@@ -601,7 +601,7 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
                             type="button"
                             onClick={() => onToggleDisabledItem(item.key)}
                             className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 shrink-0 cursor-pointer ${
-                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                              isAvailable ? 'bg-brand-red' : 'bg-slate-350'
                             }`}
                           >
                             <div
@@ -635,7 +635,7 @@ export default function AdminPanel({ onClose, disabledItems, onToggleDisabledIte
                             type="button"
                             onClick={() => onToggleDisabledItem(item.key)}
                             className={`w-9 h-5 flex items-center rounded-full p-0.5 transition-colors duration-200 shrink-0 cursor-pointer ${
-                              isAvailable ? 'bg-green-500' : 'bg-slate-350'
+                              isAvailable ? 'bg-brand-red' : 'bg-slate-350'
                             }`}
                           >
                             <div
