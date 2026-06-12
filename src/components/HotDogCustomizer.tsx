@@ -312,13 +312,17 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
           {stepLabels.map((step) => {
             const isActive = currentStep === step.num;
             const isCompleted = currentStep > step.num;
+            const isClickable = step.num <= currentStep;
 
             return (
               <button
                 key={step.num}
                 type="button"
-                onClick={() => setCurrentStep(step.num)}
-                className="flex-1 focus:outline-hidden group text-left cursor-pointer"
+                onClick={() => isClickable && setCurrentStep(step.num)}
+                disabled={!isClickable}
+                className={`flex-1 focus:outline-hidden group text-left ${
+                  isClickable ? 'cursor-pointer' : 'cursor-not-allowed'
+                }`}
               >
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-1">
@@ -335,7 +339,11 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     </span>
                     <span
                       className={`text-[10px] font-extrabold uppercase tracking-wider hidden sm:inline leading-none ${
-                        isActive ? 'text-brand-red' : 'text-slate-400 group-hover:text-slate-600'
+                        isActive 
+                          ? 'text-brand-red' 
+                          : isClickable 
+                            ? 'text-slate-400 group-hover:text-slate-600' 
+                            : 'text-slate-300'
                       }`}
                     >
                       {step.title}
