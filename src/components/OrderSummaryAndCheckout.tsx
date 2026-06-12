@@ -244,8 +244,10 @@ export default function OrderSummaryAndCheckout({
         delivered: false
       };
       
-      // Save to Firestore
-      await setDoc(doc(db, 'orders', orderId), savedOrder);
+      // Save to Firestore (non-blocking)
+      setDoc(doc(db, 'orders', orderId), savedOrder).catch(err => {
+        console.error('Erro ao salvar no Firestore:', err);
+      });
 
       // Fallback: Save to LocalStorage
       const prevOrdersStr = localStorage.getItem('divino_lanches_orders');
