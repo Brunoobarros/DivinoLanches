@@ -558,7 +558,7 @@ export default function OrderSummaryAndCheckout({
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
-                  placeholder="(DDD) 99999-9999"
+                  placeholder=""
                   className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-hidden focus:ring-1 focus:ring-red-500 focus:bg-white"
                   required
                   autoComplete="off"
