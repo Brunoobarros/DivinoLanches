@@ -44,4 +44,4 @@ export const NEIGHBORHOODS: NeighborhoodFee[] = [
   { name: 'Outros (Consultar taxa)', fee: 12.00 },
 ];
 
-export const WHATSAPP_NUMBER = '5582996035476';
+export const WHATSAPP_NUMBER = '5582996714559';
