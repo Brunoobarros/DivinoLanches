@@ -44,11 +44,31 @@ export default function App() {
   // Navigation tabs state: 'montar' | 'admin' | 'carrinho'
   const [activeTab, setActiveTab] = useState<'montar' | 'admin' | 'carrinho'>('montar');
 
-  // Dynamic cardápio (menu) state
-  const [hotDogsMenu, setHotDogsMenu] = useState<MenuItem[]>([]);
-  const [drinksMenu, setDrinksMenu] = useState<MenuItem[]>([]);
-  const [basicIngredients, setBasicIngredients] = useState<BasicIngredientConfig[]>([]);
-  const [extrasConfig, setExtrasConfig] = useState<ExtraConfig[]>([]);
+  // Dynamic cardápio (menu) state with local defaults/fallbacks
+  const [hotDogsMenu, setHotDogsMenu] = useState<MenuItem[]>([
+    { id: 'boi', name: 'Salsicha de Boi', price: 15.0, description: 'Salsicha tradicional bovina grelhada.' },
+    { id: 'frango', name: 'Frango Desfiado', price: 16.0, description: 'Frango desfiado cremoso e temperado.' },
+    { id: 'calabresa', name: 'Calabresa Defumada', price: 16.0, description: 'Calabresa grelhada com cebola na chapa.' }
+  ]);
+  const [drinksMenu, setDrinksMenu] = useState<MenuItem[]>([
+    { id: 'coca_lata', name: 'Coca-Cola (Lata)', price: 6.00, description: 'Lata de 350ml bem gelada' },
+    { id: 'guarana_lata', name: 'Guaraná Antarctica (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
+    { id: 'fanta_lata', name: 'Fanta Laranja (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
+    { id: 'suco_laranja', name: 'Suco de Laranja (300ml)', price: 8.00, description: 'Suco natural e refrescante' },
+    { id: 'agua', name: 'Água Mineral Sem Gás (500ml)', price: 4.00, description: 'Água mineral fresca' }
+  ]);
+  const [basicIngredients, setBasicIngredients] = useState<BasicIngredientConfig[]>([
+    { id: 'milhoErvilha', name: 'Milho & Ervilha Dupla', description: 'Docinho e crocante' },
+    { id: 'vinagrete', name: 'Vinagrete Picadinho', description: 'Tomate fresco e cebola' },
+    { id: 'cenoura', name: 'Cenoura Raladinha', description: 'Fina e nutritiva' },
+    { id: 'batataPalha', name: 'Batata Palha Crocante', description: 'Sempre fresquinha' }
+  ]);
+  const [extrasConfig, setExtrasConfig] = useState<ExtraConfig[]>([
+    { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' },
+    { id: 'molhoEspecial', name: 'Molho Especial', price: 1.50, description: 'Receita secreta da casa' },
+    { id: 'molhoVerde', name: 'Molho Verde', price: 1.50, description: 'Sabor marcante' },
+    { id: 'molhoBarbecue', name: 'Molho Barbecue', price: 1.50, description: 'Defumado e adocicado' }
+  ]);
   const [disabledItems, setDisabledItems] = useState<string[]>([]);
   const [orders, setOrders] = useState<SavedOrder[]>([]);
 

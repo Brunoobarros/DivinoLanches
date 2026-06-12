@@ -1,8 +1,19 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
+const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+
+if (!apiKey) {
+  console.warn(
+    "⚠️ ATENÇÃO: As variáveis de ambiente do Firebase não foram encontradas! " +
+    "Se você publicou o projeto online (ex: GitHub Pages, Vercel, Netlify), " +
+    "certifique-se de configurar as Environment Variables (VITE_FIREBASE_...) " +
+    "no painel da plataforma de hospedagem. O arquivo .env local é ignorado pelo Git."
+  );
+}
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  apiKey: apiKey,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
