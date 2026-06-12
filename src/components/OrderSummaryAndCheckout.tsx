@@ -571,7 +571,7 @@ export default function OrderSummaryAndCheckout({
               resetAllAfterSuccess();
               if (onClearForceSuccess) onClearForceSuccess();
             }}
-            className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-extrabold text-sm bg-emerald-650 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
+            className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-extrabold text-sm bg-emerald-600 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
             Fazer Novo Pedido 🌭
           </button>
@@ -1088,7 +1088,7 @@ export default function OrderSummaryAndCheckout({
                     onClearCart();
                     setOrderSent(true);
                   }}
-                  className="w-full bg-emerald-650 hover:bg-emerald-700 text-white font-extrabold py-4 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer transition-all text-sm focus:ring-2 focus:ring-emerald-300"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-4 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer transition-all text-sm focus:ring-2 focus:ring-emerald-300"
                 >
                   <CheckCircle className="w-5 h-5 stroke-[2.5]" />
                   <span>Já paguei! Confirmar no WhatsApp</span>

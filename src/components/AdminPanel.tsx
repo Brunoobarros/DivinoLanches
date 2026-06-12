@@ -1316,7 +1316,7 @@ export default function AdminPanel({
                     className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm text-white ${
                       isSavingPix
                         ? 'bg-slate-350 cursor-not-allowed'
-                        : 'bg-emerald-650 hover:bg-emerald-700 cursor-pointer'
+                        : 'bg-emerald-600 hover:bg-emerald-700 cursor-pointer'
                     }`}
                   >
                     {isSavingPix ? 'Salvando...' : 'Salvar Chave Pix'}
