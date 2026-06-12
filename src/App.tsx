@@ -12,7 +12,7 @@ import {
   BasicIngredientConfig,
   ExtraConfig
 } from './types';
-import { PROTEIN_LABELS } from './constants';
+import { PROTEIN_LABELS, WHATSAPP_NUMBER } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Crown, 
@@ -281,6 +281,107 @@ export default function App() {
     frango_calabresa: `Misto (${hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango'} & ${hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa'})`,
   };
 
+  const [forceSuccessOrderId, setForceSuccessOrderId] = useState<string | null>(null);
+
+  // Handle Mercado Pago Redirect return (approved payment)
+  useEffect(() => {
+    const handleRedirectReturn = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const paymentStatus = params.get('status') || params.get('collection_status');
+      const orderId = params.get('external_reference');
+
+      if (paymentStatus === 'approved' && orderId) {
+        try {
+          const orderRef = doc(db, 'orders', orderId);
+          const orderSnap = await getDoc(orderRef);
+
+          if (orderSnap.exists()) {
+            const orderData = { id: orderSnap.id, ...orderSnap.data() } as SavedOrder;
+
+            // Only trigger if it wasn't already marked as paid
+            if (!orderData.paid) {
+              // 1. Update Firestore status to paid and confirmed
+              await updateDoc(orderRef, { paid: true, confirmed: true });
+              
+              // 2. Clear cart locally
+              setCart({ hotDogs: [], drinks: [] });
+
+              // 3. Set state to force success screen inside the Carrinho/Checkout Tab
+              setForceSuccessOrderId(orderId);
+              setActiveTab('carrinho');
+
+              // 4. Compile the paid message and open WhatsApp
+              const compileMessage = () => {
+                let text = `✨ *NOVO PEDIDO - ${orderData.id}* ✨\n`;
+                text += `🕒 Feito em: ${new Date(orderData.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}\n`;
+                text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+                text += `👤 *Cliente:* ${orderData.customerName}\n`;
+                text += `📞 *WhatsApp:* ${orderData.customerPhone}\n`;
+                text += `🛵 *Tipo:* ${orderData.orderType === 'entrega' ? 'Entrega em Casa' : 'Vou retirar na lanchonete'}\n\n`;
+
+                if (orderData.orderType === 'entrega') {
+                  text += `📍 *Endereço de Entrega:*\n`;
+                  text += `  • Rua: ${orderData.street}, Nº ${orderData.num}\n`;
+                  text += `  • Bairro: ${orderData.neighborhood}\n`;
+                  if (orderData.reference) text += `  • Ref: ${orderData.reference}\n`;
+                  text += `\n`;
+                }
+
+                text += `🛒 *Itens do Pedido:*\n`;
+                
+                orderData.hotDogs.forEach((dog) => {
+                  text += `• *${dog.quantity}x Dog de ${dynamicProteinLabels[dog.type] || dog.type}* - R$ ${(dog.price * dog.quantity).toFixed(2)}\n`;
+                  text += `  _Detalhe: ${dog.details}_\n\n`;
+                });
+
+                orderData.drinks.forEach((drink) => {
+                  text += `• *${drink.quantity}x ${drink.name}* - R$ ${(drink.price * drink.quantity).toFixed(2)}\n\n`;
+                });
+
+                text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+                text += `💵 *Subtotal:* R$ ${orderData.subtotal.toFixed(2)}\n`;
+                if (orderData.orderType === 'entrega') {
+                  text += `🛵 *Taxa de Entrega:* R$ ${orderData.deliveryFee.toFixed(2)}\n`;
+                }
+                text += `💰 *TOTAL GERAL:* R$ ${orderData.grandTotal.toFixed(2)}\n`;
+                text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+                const payLabels = {
+                  pix: 'Pix ⚡ (PAGO ONLINE)',
+                  cartao_credito: 'Cartão de Crédito 💳 (PAGO ONLINE)',
+                  cartao_debito: 'Cartão de Débito 💳 (PAGO ONLINE)',
+                  dinheiro: 'Dinheiro 💵',
+                };
+                text += `💳 *Forma de Pagamento:* ${payLabels[orderData.paymentMethod as keyof typeof payLabels] || orderData.paymentMethod}\n`;
+                return text.trim();
+              };
+
+              const whatsappMessage = compileMessage();
+              const encoded = encodeURIComponent(whatsappMessage);
+              const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
+              
+              // Open WhatsApp redirection
+              const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+              if (isMobile) {
+                window.location.href = whatsappUrl;
+              } else {
+                window.open(whatsappUrl, '_blank');
+              }
+            }
+          }
+        } catch (e) {
+          console.error("Erro ao tratar retorno de pagamento:", e);
+        } finally {
+          // Remove parameters from URL so that reloading the page doesn't run this logic again
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+      }
+    };
+
+    handleRedirectReturn();
+  }, [orders, dynamicProteinLabels]);
+
   // Check if admin mode is active (either in query parameter or saved in sessionStorage)
   const [isAdminMode, setIsAdminMode] = useState(() => {
     try {
@@ -543,6 +644,8 @@ export default function App() {
                       onClearCart={handleClearCart}
                       onNavigateToMenu={() => setActiveTab('montar')}
                       proteinLabels={dynamicProteinLabels}
+                      forceSuccessOrderId={forceSuccessOrderId}
+                      onClearForceSuccess={() => setForceSuccessOrderId(null)}
                     />
                   </motion.div>
                 )}
@@ -637,6 +740,8 @@ export default function App() {
                   onClearCart={handleClearCart}
                   onNavigateToMenu={() => setActiveTab('montar')}
                   proteinLabels={dynamicProteinLabels}
+                  forceSuccessOrderId={forceSuccessOrderId}
+                  onClearForceSuccess={() => setForceSuccessOrderId(null)}
                 />
               )}
             </div>

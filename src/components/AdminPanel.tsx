@@ -566,13 +566,20 @@ export default function AdminPanel({
                               <h4 className="font-extrabold text-xs text-slate-800 mt-1 capitalize">{o.customerName}</h4>
                             </div>
                             
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm ${
                                 o.orderType === 'entrega' 
                                   ? 'bg-orange-100 text-orange-700' 
                                   : 'bg-green-100 text-green-700'
                               }`}>
                                 {o.orderType === 'entrega' ? '🛵 Entrega' : '🏪 Retirada'}
+                              </span>
+                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm ${
+                                o.paid 
+                                  ? 'bg-emerald-100 text-emerald-800' 
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {o.paid ? '🟢 Pago' : '🟡 A Pagar'}
                               </span>
                               <button 
                                 onClick={() => deleteOrder(o.id)}
@@ -615,6 +622,11 @@ export default function AdminPanel({
                           <div className="flex items-center justify-between border-t border-slate-200/50 pt-2 mt-2.5 text-[10px] text-slate-500">
                             <div>
                               <strong>Pagamento:</strong> {o.paymentMethod.toUpperCase().replace('_', ' ')}
+                              {o.paid ? (
+                                <span className="text-emerald-600 font-extrabold ml-1">(PAGO ONLINE)</span>
+                              ) : (
+                                <span className="text-amber-600 font-extrabold ml-1">(A PAGAR)</span>
+                              )}
                               {o.changeFor && <span> (Troco p/ R$ {o.changeFor})</span>}
                             </div>
                             <div className="text-right">

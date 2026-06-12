@@ -14,6 +14,8 @@ interface OrderSummaryAndCheckoutProps {
   onClearCart: () => void;
   onNavigateToMenu?: () => void;
   proteinLabels?: Record<string, string>;
+  forceSuccessOrderId?: string | null;
+  onClearForceSuccess?: () => void;
 }
 
 export default function OrderSummaryAndCheckout({
@@ -24,6 +26,8 @@ export default function OrderSummaryAndCheckout({
   onClearCart,
   onNavigateToMenu,
   proteinLabels,
+  forceSuccessOrderId,
+  onClearForceSuccess,
 }: OrderSummaryAndCheckoutProps) {
   // Checkout Details Status
   const [orderType, setOrderType] = useState<OrderType>('retirada');
@@ -37,6 +41,7 @@ export default function OrderSummaryAndCheckout({
   const [changeFor, setChangeFor] = useState('');
   
   const [validationError, setValidationError] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Format phone number as user types: (82) 99603-5476
   const formatPhone = (value: string): string => {
@@ -240,7 +245,8 @@ export default function OrderSummaryAndCheckout({
         grandTotal,
         timestamp: new Date().toISOString(),
         confirmed: false,
-        delivered: false
+        delivered: false,
+        paid: false
       };
       
       // Save to Firestore (non-blocking)
@@ -257,20 +263,65 @@ export default function OrderSummaryAndCheckout({
       console.error('Erro ao salvar pedido', e);
     }
 
-    // Redireciona para o WhatsApp (evita tela branca no celular)
-    try {
-      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      if (isMobile) {
-        window.location.href = whatsappUrl;
-      } else {
-        window.open(whatsappUrl, '_blank');
+    // Se o pagamento for em dinheiro, vai direto para o WhatsApp
+    if (paymentMethod === 'dinheiro') {
+      try {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+          window.location.href = whatsappUrl;
+        } else {
+          window.open(whatsappUrl, '_blank');
+        }
+      } catch (e) {
+        console.error('Erro ao abrir o WhatsApp', e);
       }
-    } catch (e) {
-      console.error('Erro ao abrir o WhatsApp', e);
-    }
+      setOrderSent(true);
+    } else {
+      // Se for pagamento online (Pix/Cartão), inicia o checkout do Mercado Pago
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/create-preference', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId,
+            items: [
+              ...cart.hotDogs.map(d => ({
+                id: d.type,
+                name: `Dog de ${proteinLabels?.[d.type] || d.type}`,
+                quantity: d.quantity,
+                price: d.price
+              })),
+              ...cart.drinks.map(dr => ({
+                id: dr.drinkId,
+                name: dr.name,
+                quantity: dr.quantity,
+                price: dr.price
+              }))
+            ],
+            deliveryFee: orderType === 'entrega' ? deliveryFee : 0,
+            customerName
+          })
+        });
 
-    // Mark as sent
-    setOrderSent(true);
+        if (!response.ok) {
+          throw new Error('Falha ao gerar preferência de pagamento.');
+        }
+
+        const data = await response.json();
+        // Em ambiente sandbox de teste, usamos sandbox_init_point se disponível
+        const paymentUrl = data.sandbox_init_point || data.init_point;
+        
+        // Redireciona o cliente para o Checkout do Mercado Pago
+        window.location.href = paymentUrl;
+      } catch (err) {
+        console.error('Erro ao iniciar pagamento Mercado Pago:', err);
+        setValidationError('Erro ao processar o pagamento online. Por favor, tente novamente ou escolha pagar na entrega.');
+        setIsProcessing(false);
+      }
+    }
   };
 
   const copyToClipboard = () => {
@@ -293,7 +344,10 @@ export default function OrderSummaryAndCheckout({
     setChangeFor('');
   };
 
-  if (orderSent) {
+  const isOnlinePaidSuccess = !!forceSuccessOrderId;
+  const showSuccess = orderSent || isOnlinePaidSuccess;
+
+  if (showSuccess) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -303,16 +357,29 @@ export default function OrderSummaryAndCheckout({
         <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-md">
           <CheckCircle className="w-10 h-10 stroke-[2.5]" />
         </div>
-        <h3 className="text-2xl font-black text-emerald-950 mb-2">Pedido Recebido com Sucesso!</h3>
+        <h3 className="text-2xl font-black text-emerald-950 mb-2">
+          {isOnlinePaidSuccess ? 'Pagamento Aprovado!' : 'Pedido Recebido com Sucesso!'}
+        </h3>
         <p className="text-emerald-800 text-sm max-w-md mx-auto mb-6 leading-relaxed">
-          Seu pedido foi registrado em nosso sistema e o chapeiro já está preparando o seu delicioso dogão. 
-          Lembrando que o pagamento será realizado diretamente no momento da entrega ou retirada.
+          {isOnlinePaidSuccess ? (
+            <span>
+              Seu pagamento online foi confirmado com sucesso. Seu pedido (ID: <strong>{forceSuccessOrderId}</strong>) foi registrado e o chapeiro já está preparando o seu delicioso dogão!
+            </span>
+          ) : (
+            <span>
+              Seu pedido foi registrado em nosso sistema e o chapeiro já está preparando o seu delicioso dogão. 
+              Lembrando que o pagamento será realizado diretamente no momento da entrega ou retirada.
+            </span>
+          )}
         </p>
 
         <div className="flex justify-center mt-2">
           <button
             type="button"
-            onClick={resetAllAfterSuccess}
+            onClick={() => {
+              resetAllAfterSuccess();
+              if (onClearForceSuccess) onClearForceSuccess();
+            }}
             className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl font-extrabold text-sm bg-emerald-650 hover:bg-emerald-700 text-white shadow-md hover:shadow-lg transition-all cursor-pointer"
           >
             Fazer Novo Pedido 🌭
@@ -674,13 +741,27 @@ export default function OrderSummaryAndCheckout({
           {/* Submit Actions */}
           <div className="grid grid-cols-1 gap-2 pt-2">
             <motion.button
-              whileTap={{ scale: 0.98 }}
+              whileTap={isProcessing ? undefined : { scale: 0.98 }}
               type="button"
-              onClick={handleSendOrder}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all text-base cursor-pointer focus:ring-2 focus:ring-emerald-300"
+              onClick={isProcessing ? undefined : handleSendOrder}
+              disabled={isProcessing}
+              className={`w-full font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all text-base focus:ring-2 ${
+                isProcessing
+                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer focus:ring-emerald-300'
+              }`}
             >
-              <CheckCircle className="w-5 h-5 stroke-[2.5]" />
-              <span>Finalizar Pedido</span>
+              {isProcessing ? (
+                <>
+                  <span className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                  <span>Redirecionando para o Pagamento...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 stroke-[2.5]" />
+                  <span>Finalizar Pedido</span>
+                </>
+              )}
             </motion.button>
           </div>
 

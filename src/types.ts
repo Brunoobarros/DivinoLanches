@@ -100,6 +100,7 @@ export interface SavedOrder {
   timestamp: string;
   confirmed?: boolean;
   delivered?: boolean;
+  paid?: boolean;
 }
 
 export interface BasicIngredientConfig {
