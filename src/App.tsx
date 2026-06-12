@@ -3,7 +3,7 @@ import Header from './components/Header';
 import HotDogCustomizer from './components/HotDogCustomizer';
 import AdminPanel from './components/AdminPanel';
 import OrderSummaryAndCheckout from './components/OrderSummaryAndCheckout';
-import { Cart, HotDogItem, DrinkCartItem } from './types';
+import { Cart, HotDogItem, DrinkCartItem, MenuItem } from './types';
 import { DRINKS_MENU, PROTEIN_LABELS } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -24,6 +24,57 @@ const LOCAL_STORAGE_KEY = 'divino_lanches_cart';
 export default function App() {
   // Navigation tabs state: 'montar' | 'admin' | 'carrinho'
   const [activeTab, setActiveTab] = useState<'montar' | 'admin' | 'carrinho'>('montar');
+
+  // Dynamic cardápio (menu) state
+  const [hotDogsMenu, setHotDogsMenu] = useState<MenuItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('divino_lanches_menu_hotdogs');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.error('Erro ao carregar menu de hotdogs', e);
+    }
+    return [
+      { id: 'boi', name: 'Salsicha de Boi', price: 15.0, description: 'Salsicha tradicional bovina grelhada.' },
+      { id: 'frango', name: 'Frango Desfiado', price: 16.0, description: 'Frango desfiado cremoso e temperado.' },
+      { id: 'calabresa', name: 'Calabresa Defumada', price: 16.0, description: 'Calabresa grelhada com cebola na chapa.' }
+    ];
+  });
+
+  const [drinksMenu, setDrinksMenu] = useState<MenuItem[]>(() => {
+    try {
+      const stored = localStorage.getItem('divino_lanches_menu_drinks');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {
+      console.error('Erro ao carregar menu de bebidas', e);
+    }
+    return [
+      { id: 'coca_lata', name: 'Coca-Cola (Lata)', price: 6.00, description: 'Lata de 350ml bem gelada' },
+      { id: 'guarana_lata', name: 'Guaraná Antarctica (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
+      { id: 'fanta_lata', name: 'Fanta Laranja (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
+      { id: 'suco_laranja', name: 'Suco de Laranja (300ml)', price: 8.00, description: 'Suco natural e refrescante' },
+      { id: 'agua', name: 'Água Mineral Sem Gás (500ml)', price: 4.00, description: 'Água mineral fresca' }
+    ];
+  });
+
+  const handleUpdateHotDogsMenu = (newMenu: MenuItem[]) => {
+    setHotDogsMenu(newMenu);
+    localStorage.setItem('divino_lanches_menu_hotdogs', JSON.stringify(newMenu));
+  };
+
+  const handleUpdateDrinksMenu = (newMenu: MenuItem[]) => {
+    setDrinksMenu(newMenu);
+    localStorage.setItem('divino_lanches_menu_drinks', JSON.stringify(newMenu));
+  };
+
+  // Dynamic labels mapping for components
+  const dynamicProteinLabels: Record<string, string> = {
+    boi: hotDogsMenu.find(h => h.id === 'boi')?.name || 'Salsicha de Boi',
+    frango: hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango Desfiado',
+    calabresa: hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa Defumada',
+    boi_frango: `Misto (${hotDogsMenu.find(h => h.id === 'boi')?.name || 'Boi'} & ${hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango'})`,
+    boi_calabresa: `Misto (${hotDogsMenu.find(h => h.id === 'boi')?.name || 'Boi'} & ${hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa'})`,
+    frango_calabresa: `Misto (${hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango'} & ${hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa'})`,
+  };
 
   // Check if admin mode is active (either in query parameter or saved in sessionStorage)
   const [isAdminMode, setIsAdminMode] = useState(() => {
@@ -133,7 +184,7 @@ export default function App() {
   const handleUpdateDrinkQty = (drinkId: string, delta: number) => {
     setCart((prev) => {
       const existingIdx = prev.drinks.findIndex((d) => d.drinkId === drinkId);
-      const drinkInfo = DRINKS_MENU.find((d) => d.id === drinkId);
+      const drinkInfo = drinksMenu.find((d) => d.id === drinkId);
 
       if (!drinkInfo) return prev;
 
@@ -218,6 +269,8 @@ export default function App() {
                       onNavigateToCart={() => setActiveTab('carrinho')}
                       onUpdateDrinkQty={handleUpdateDrinkQty}
                       disabledItems={disabledItems}
+                      hotDogsMenu={hotDogsMenu}
+                      drinksMenu={drinksMenu}
                     />
                   </motion.div>
                 )}
@@ -236,6 +289,10 @@ export default function App() {
                       onToggleDisabledItem={handleToggleDisabledItem}
                       onLoginSuccess={() => setIsAdminMode(true)}
                       onLogout={() => setIsAdminMode(false)}
+                      hotDogsMenu={hotDogsMenu}
+                      drinksMenu={drinksMenu}
+                      onUpdateHotDogsMenu={handleUpdateHotDogsMenu}
+                      onUpdateDrinksMenu={handleUpdateDrinksMenu}
                     />
                   </motion.div>
                 )}
@@ -255,6 +312,7 @@ export default function App() {
                       onUpdateDrinkQty={handleUpdateDrinkQty}
                       onClearCart={handleClearCart}
                       onNavigateToMenu={() => setActiveTab('montar')}
+                      proteinLabels={dynamicProteinLabels}
                     />
                   </motion.div>
                 )}
@@ -313,6 +371,8 @@ export default function App() {
                   onNavigateToCart={() => setActiveTab('carrinho')}
                   onUpdateDrinkQty={handleUpdateDrinkQty}
                   disabledItems={disabledItems}
+                  hotDogsMenu={hotDogsMenu}
+                  drinksMenu={drinksMenu}
                 />
               )}
               {activeTab === 'admin' && (
@@ -322,6 +382,10 @@ export default function App() {
                   onToggleDisabledItem={handleToggleDisabledItem}
                   onLoginSuccess={() => setIsAdminMode(true)}
                   onLogout={() => setIsAdminMode(false)}
+                  hotDogsMenu={hotDogsMenu}
+                  drinksMenu={drinksMenu}
+                  onUpdateHotDogsMenu={handleUpdateHotDogsMenu}
+                  onUpdateDrinksMenu={handleUpdateDrinksMenu}
                 />
               )}
               {activeTab === 'carrinho' && (
@@ -332,6 +396,7 @@ export default function App() {
                   onUpdateDrinkQty={handleUpdateDrinkQty}
                   onClearCart={handleClearCart}
                   onNavigateToMenu={() => setActiveTab('montar')}
+                  proteinLabels={dynamicProteinLabels}
                 />
               )}
             </div>
@@ -363,7 +428,7 @@ export default function App() {
                     <div key={d.id} className="text-xs pb-2 border-b border-dashed border-stone-100 flex items-center justify-between gap-1">
                       <div>
                         <p className="font-black text-slate-800">
-                          {d.quantity}x Dog de {PROTEIN_LABELS[d.type] || d.type}
+                          {d.quantity}x Dog de {dynamicProteinLabels[d.type] || d.type}
                         </p>
                         <p className="text-[10px] text-slate-400 line-clamp-1">{d.notes || 'Sem observações'}</p>
                       </div>

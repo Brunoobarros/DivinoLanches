@@ -64,3 +64,11 @@ export interface NeighborhoodFee {
   name: string;
   fee: number;
 }
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+

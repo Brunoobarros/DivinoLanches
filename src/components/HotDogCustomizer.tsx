@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { HotDogType, BaseToppings, ExtraToppings, HotDogItem } from '../types';
-import { HOTDOG_PRICES, EXTRA_PRICES, DRINKS_MENU, PROTEIN_LABELS } from '../constants';
+import { EXTRA_PRICES } from '../constants';
 import HotDogVisualBuilder from './HotDogVisualBuilder';
-import { Plus, Minus, ShoppingCart, ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, ArrowLeft, ArrowRight, Check, AlertTriangle } from 'lucide-react';
+
+import { MenuItem } from '../types';
 
 interface HotDogCustomizerProps {
   onAddHotDog: (item: Omit<HotDogItem, 'id'>) => void;
   onNavigateToCart?: () => void;
   onUpdateDrinkQty: (drinkId: string, delta: number) => void;
   disabledItems: string[];
+  hotDogsMenu: MenuItem[];
+  drinksMenu: MenuItem[];
 }
 
-export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpdateDrinkQty, disabledItems }: HotDogCustomizerProps) {
+export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpdateDrinkQty, disabledItems, hotDogsMenu, drinksMenu }: HotDogCustomizerProps) {
   // Stepper state: 1, 2, 3, 4
   const [currentStep, setCurrentStep] = useState<number>(1);
 
@@ -145,9 +149,48 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
     }
   };
 
+  // Generate dynamic protein label for display
+  const getDynamicProteinLabel = (dogType: string): string => {
+    if (dogType === 'boi') return hotDogsMenu.find(h => h.id === 'boi')?.name || 'Salsicha de Boi';
+    if (dogType === 'frango') return hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango Desfiado';
+    if (dogType === 'calabresa') return hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa Defumada';
+    if (dogType === 'boi_frango') {
+      const p1 = hotDogsMenu.find(h => h.id === 'boi')?.name || 'Boi';
+      const p2 = hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango';
+      return `Misto (${p1} & ${p2})`;
+    }
+    if (dogType === 'boi_calabresa') {
+      const p1 = hotDogsMenu.find(h => h.id === 'boi')?.name || 'Boi';
+      const p2 = hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa';
+      return `Misto (${p1} & ${p2})`;
+    }
+    if (dogType === 'frango_calabresa') {
+      const p1 = hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango';
+      const p2 = hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa';
+      return `Misto (${p1} & ${p2})`;
+    }
+    return dogType;
+  };
+
+  // Helper to get hot dog price from dynamic menu
+  const getHotDogPrice = (dogType: string): number => {
+    // For single protein types, find directly
+    const simpleId = dogType.split('_')[0];
+    const item = hotDogsMenu.find(h => h.id === simpleId);
+    if (!item) return 15.0;
+    
+    // For mixed types, use the max price among components
+    if (dogType.includes('_')) {
+      const parts = dogType.split('_');
+      const prices = parts.map(p => hotDogsMenu.find(h => h.id === p)?.price || 15.0);
+      return Math.max(...prices);
+    }
+    return item.price;
+  };
+
   // Live price calculation
   const calculateSinglePrice = (): number => {
-    let total = HOTDOG_PRICES[type];
+    let total = getHotDogPrice(type);
     
     if (extras.queijo) total += EXTRA_PRICES.queijo;
     if (extras.molhoEspecial) total += EXTRA_PRICES.molhoEspecial;
@@ -162,7 +205,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   // Calculate local drinks total price
   const calculateLocalDrinksTotal = (): number => {
     return Object.entries(selectedDrinks).reduce((sum, [drinkId, qty]) => {
-      const drink = DRINKS_MENU.find((d) => d.id === drinkId);
+      const drink = drinksMenu.find((d) => d.id === drinkId);
       return sum + (drink ? drink.price : 0) * qty;
     }, 0);
   };
@@ -382,15 +425,15 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         }`}
                       >
                         <div className="flex-1">
-                          <p className="text-sm font-extrabold text-slate-900">Carne de Boi</p>
-                          <p className="text-xs text-slate-500 leading-tight">Salsicha tradicional bovina grelhada.</p>
+                          <p className="text-sm font-extrabold text-slate-900">{hotDogsMenu.find(h => h.id === 'boi')?.name || 'Carne de Boi'}</p>
+                          <p className="text-xs text-slate-500 leading-tight">{hotDogsMenu.find(h => h.id === 'boi')?.description || 'Salsicha tradicional bovina grelhada.'}</p>
                           {isProductDisabled ? (
                             <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
                               Esgotado
                             </span>
                           ) : (
-                            <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                              R$ {HOTDOG_PRICES.boi.toFixed(2)}
+                              <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              R$ {getHotDogPrice('boi').toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -422,15 +465,15 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         }`}
                       >
                         <div className="flex-1">
-                          <p className="text-sm font-extrabold text-slate-900">Frango Desfiado</p>
-                          <p className="text-xs text-slate-500 leading-tight">Frango desfiado cremoso e temperado.</p>
+                          <p className="text-sm font-extrabold text-slate-900">{hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango Desfiado'}</p>
+                          <p className="text-xs text-slate-500 leading-tight">{hotDogsMenu.find(h => h.id === 'frango')?.description || 'Frango desfiado cremoso e temperado.'}</p>
                           {isProductDisabled ? (
                             <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
                               Esgotado
                             </span>
                           ) : (
-                            <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                              R$ {HOTDOG_PRICES.frango.toFixed(2)}
+                              <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              R$ {getHotDogPrice('frango').toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -462,15 +505,15 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                         }`}
                       >
                         <div className="flex-1">
-                          <p className="text-sm font-extrabold text-slate-900">Calabresa Defumada</p>
-                          <p className="text-xs text-slate-500 leading-tight">Calabresa grelhada com cebola na chapa.</p>
+                          <p className="text-sm font-extrabold text-slate-900">{hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa Defumada'}</p>
+                          <p className="text-xs text-slate-500 leading-tight">{hotDogsMenu.find(h => h.id === 'calabresa')?.description || 'Calabresa grelhada com cebola na chapa.'}</p>
                           {isProductDisabled ? (
                             <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
                               Esgotado
                             </span>
                           ) : (
-                            <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
-                              R$ {HOTDOG_PRICES.calabresa.toFixed(2)}
+                              <span className="text-xs font-bold text-brand-red bg-brand-red/10 px-2 py-0.5 rounded-md mt-1.5 inline-block font-mono">
+                              R$ {getHotDogPrice('calabresa').toFixed(2)}
                             </span>
                           )}
                         </div>
@@ -567,7 +610,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[280px] overflow-y-auto pr-1">
-                  {DRINKS_MENU.map((drink) => {
+                  {drinksMenu.map((drink) => {
                     const qty = selectedDrinks[drink.id] || 0;
                     const isProductDisabled = disabledItems.includes(drink.id);
                     
@@ -582,9 +625,12 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                               : 'border-slate-100 bg-stone-50/50 hover:border-slate-200'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <h4 className="text-xs font-bold text-slate-800 leading-tight">{drink.name}</h4>
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="min-w-0">
+                            <h4 className="text-xs font-bold text-slate-800 leading-tight truncate">{drink.name}</h4>
+                            {drink.description && (
+                              <p className="text-[10px] text-slate-400 leading-tight mt-0.5 truncate">{drink.description}</p>
+                            )}
                             {isProductDisabled ? (
                               <span className="text-[10px] bg-red-100 text-red-750 px-2 py-0.5 rounded-md font-bold mt-0.5 inline-block">
                                 Esgotada
@@ -682,7 +728,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     <div>
                       <span className="text-slate-500 font-medium">Dogão personalizado:</span>
                       <p className="font-extrabold text-brand-red capitalize">
-                        {PROTEIN_LABELS[type] || type} {quantity}x
+                        {getDynamicProteinLabel(type)} {quantity}x
                       </p>
                     </div>
                     <div className="text-right">
@@ -695,7 +741,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     <div className="border-t border-brand-red/10 pt-2 flex flex-col gap-1">
                       <span className="text-slate-500 font-medium text-[10px] font-black uppercase tracking-wider">Bebidas selecionadas no combo:</span>
                       {Object.entries(selectedDrinks).map(([drinkId, qty]) => {
-                        const drink = DRINKS_MENU.find((d) => d.id === drinkId);
+                        const drink = drinksMenu.find((d) => d.id === drinkId);
                         if (!drink) return null;
                         return (
                           <div key={drinkId} className="flex justify-between text-[11px] text-slate-650">

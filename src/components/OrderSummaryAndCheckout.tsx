@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder } from '../types';
-import { NEIGHBORHOODS, WHATSAPP_NUMBER, PROTEIN_LABELS } from '../constants';
+import { NEIGHBORHOODS, WHATSAPP_NUMBER } from '../constants';
 import { ShoppingCart, Trash2, MapPin, CheckCircle, Smartphone, Send, DollarSign, Copy, AlertTriangle, ArrowLeft } from 'lucide-react';
 
 interface OrderSummaryAndCheckoutProps {
@@ -11,6 +11,7 @@ interface OrderSummaryAndCheckoutProps {
   onUpdateDrinkQty: (drinkId: string, delta: number) => void;
   onClearCart: () => void;
   onNavigateToMenu?: () => void;
+  proteinLabels?: Record<string, string>;
 }
 
 export default function OrderSummaryAndCheckout({
@@ -20,6 +21,7 @@ export default function OrderSummaryAndCheckout({
   onUpdateDrinkQty,
   onClearCart,
   onNavigateToMenu,
+  proteinLabels,
 }: OrderSummaryAndCheckoutProps) {
   // Checkout Details Status
   const [orderType, setOrderType] = useState<OrderType>('retirada');
@@ -33,6 +35,27 @@ export default function OrderSummaryAndCheckout({
   const [changeFor, setChangeFor] = useState('');
   
   const [validationError, setValidationError] = useState('');
+
+  // Format phone number as user types: (82) 99603-5476
+  const formatPhone = (value: string): string => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    // Limit to 11 digits (Brazilian phone number)
+    const limited = digits.slice(0, 11);
+    
+    if (limited.length <= 2) {
+      return limited.length > 0 ? `(${limited}` : '';
+    }
+    if (limited.length <= 7) {
+      return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
+    }
+    return `(${limited.slice(0, 2)}) ${limited.slice(2, 7)}-${limited.slice(7)}`;
+  };
+
+  const isValidPhone = (phone: string): boolean => {
+    const digits = phone.replace(/\D/g, '');
+    return digits.length >= 10 && digits.length <= 11;
+  };
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
 
@@ -111,7 +134,7 @@ export default function OrderSummaryAndCheckout({
     
     // List Hot Dogs
     cart.hotDogs.forEach((dog, idx) => {
-      const label = PROTEIN_LABELS[dog.type] || dog.type;
+      const label = proteinLabels?.[dog.type] || dog.type;
       text += `• *${dog.quantity}x Dog de ${label}* - R$ ${(dog.price * dog.quantity).toFixed(2)}\n`;
       text += `  _Detalhe: ${formatHotDogIngredients(dog)}_\n\n`;
     });
@@ -155,8 +178,13 @@ export default function OrderSummaryAndCheckout({
       setValidationError('Por favor, informe seu nome!');
       return;
     }
+    const phoneDigits = customerPhone.replace(/\D/g, '');
     if (!customerPhone.trim()) {
       setValidationError('Por favor, informe seu celular/WhatsApp!');
+      return;
+    }
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+      setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex: 82 99603-5476).');
       return;
     }
 
@@ -181,8 +209,14 @@ export default function OrderSummaryAndCheckout({
 
     // Salva o pedido no histórico local para exibição no painel Admin
     try {
+      // Generate sequential ID: PED_001, PED_002, etc.
+      const prevOrdersStr = localStorage.getItem('divino_lanches_orders');
+      const prevOrders = prevOrdersStr ? JSON.parse(prevOrdersStr) : [];
+      const nextNumber = prevOrders.length + 1;
+      const orderId = `PED_${String(nextNumber).padStart(3, '0')}`;
+      
       const savedOrder = {
-        id: `ped_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        id: orderId,
         customerName,
         customerPhone,
         orderType,
@@ -206,11 +240,10 @@ export default function OrderSummaryAndCheckout({
         subtotal,
         deliveryFee,
         grandTotal,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        confirmed: false
       };
       
-      const prevOrdersStr = localStorage.getItem('divino_lanches_orders');
-      const prevOrders = prevOrdersStr ? JSON.parse(prevOrdersStr) : [];
       prevOrders.unshift(savedOrder);
       localStorage.setItem('divino_lanches_orders', JSON.stringify(prevOrders));
     } catch (e) {
@@ -324,7 +357,7 @@ export default function OrderSummaryAndCheckout({
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-black text-slate-800 uppercase tracking-tight">
-                    {dog.type === 'boi' ? '🌭' : dog.type === 'frango' ? '🍗' : dog.type === 'calabresa' ? '🍕' : '✨'} Dog de {PROTEIN_LABELS[dog.type] || dog.type}
+                    {dog.type === 'boi' ? '🌭' : dog.type === 'frango' ? '🍗' : dog.type === 'calabresa' ? '🍕' : '✨'} Dog de {proteinLabels?.[dog.type] || dog.type}
                   </span>
                   <span className="text-xs font-bold bg-amber-400/20 text-amber-900 border border-amber-300/30 px-1.5 py-0.5 rounded-sm">
                     R$ {dog.price.toFixed(2)}
@@ -524,10 +557,11 @@ export default function OrderSummaryAndCheckout({
                 <input
                   type="tel"
                   value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="(11) 99999-9999"
+                  onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                  placeholder="(DDD) 99999-9999"
                   className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-hidden focus:ring-1 focus:ring-red-500 focus:bg-white"
                   required
+                  autoComplete="off"
                 />
               </div>
             </div>
