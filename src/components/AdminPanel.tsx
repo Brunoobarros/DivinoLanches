@@ -20,6 +20,8 @@ import {
 import { PROTEIN_LABELS } from '../constants';
 import { MenuItem, SavedOrder, BasicIngredientConfig, ExtraConfig } from '../types';
 import logoImg from '../../assets/logo.png';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -85,6 +87,49 @@ export default function AdminPanel({
   const [error, setError] = useState('');
   const [activeSubTab, setActiveSubTab] = useState<'pedidos' | 'cardapio' | 'estatisticas' | 'config'>('pedidos');
   const [ordersFilter, setOrdersFilter] = useState<'pending' | 'confirmed' | 'delivered'>('pending');
+
+  // Configuração da Chave Pix do Estabelecimento
+  const [pixKey, setPixKey] = useState('');
+  const [pixName, setPixName] = useState('');
+  const [pixCity, setPixCity] = useState('');
+  const [isSavingPix, setIsSavingPix] = useState(false);
+
+  // Carrega configurações da chave Pix
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const loadPixConfig = async () => {
+      try {
+        const pixSnap = await getDoc(doc(db, 'config', 'pix_key'));
+        if (pixSnap.exists()) {
+          const data = pixSnap.data();
+          setPixKey(data.key || '');
+          setPixName(data.name || '');
+          setPixCity(data.city || '');
+        }
+      } catch (err) {
+        console.error('Erro ao carregar chave Pix:', err);
+      }
+    };
+    loadPixConfig();
+  }, [isLoggedIn]);
+
+  const handleSavePixConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingPix(true);
+    try {
+      await setDoc(doc(db, 'config', 'pix_key'), {
+        key: pixKey.trim(),
+        name: pixName.trim(),
+        city: pixCity.trim(),
+      });
+      alert('Chave Pix atualizada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar chave Pix:', err);
+      alert('Erro ao salvar chave Pix. Tente novamente.');
+    } finally {
+      setIsSavingPix(false);
+    }
+  };
 
   const prevPendingCountRef = React.useRef<number | null>(null);
 
@@ -1217,6 +1262,67 @@ export default function AdminPanel({
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Seção de Configuração da Chave Pix do Estabelecimento */}
+            <div className="bg-white border border-slate-150 rounded-3xl p-4 md:p-5 shadow-xs space-y-4">
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-slate-800 tracking-tight flex items-center gap-1.5">
+                  <span>⚡ Chave Pix para Recebimento</span>
+                </h4>
+                <p className="text-[10.5px] text-slate-400 mt-1 leading-tight">
+                  Cadastre sua chave Pix para receber os pagamentos. Se cadastrada, o cliente verá o QR Code e o Copia e Cola para transferir direto para sua conta (sem necessidade de taxas ou do Mercado Pago).
+                </p>
+              </div>
+
+              <form onSubmit={handleSavePixConfig} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="col-span-1">
+                    <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1">Chave Pix (Celular, CPF/CNPJ, E-mail ou Aleatória)</label>
+                    <input
+                      type="text"
+                      value={pixKey}
+                      onChange={(e) => setPixKey(e.target.value)}
+                      placeholder="Ex: 82996035476 ou pix@divino.com"
+                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:border-brand-red text-slate-800 font-bold"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1">Nome Completo do Titular</label>
+                    <input
+                      type="text"
+                      value={pixName}
+                      onChange={(e) => setPixName(e.target.value)}
+                      placeholder="Ex: Bruno Silva Barros"
+                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:border-brand-red text-slate-800 font-bold"
+                    />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1">Cidade do Beneficiário</label>
+                    <input
+                      type="text"
+                      value={pixCity}
+                      onChange={(e) => setPixCity(e.target.value)}
+                      placeholder="Ex: Maceio"
+                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:border-brand-red text-slate-800 font-bold"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    disabled={isSavingPix}
+                    className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm text-white ${
+                      isSavingPix
+                        ? 'bg-slate-350 cursor-not-allowed'
+                        : 'bg-emerald-650 hover:bg-emerald-700 cursor-pointer'
+                    }`}
+                  >
+                    {isSavingPix ? 'Salvando...' : 'Salvar Chave Pix'}
+                  </button>
+                </div>
+              </form>
             </div>
             
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3">

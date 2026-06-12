@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder } from '../types';
 import { NEIGHBORHOODS, WHATSAPP_NUMBER } from '../constants';
 import { ShoppingCart, Trash2, MapPin, CheckCircle, Smartphone, Send, DollarSign, Copy, AlertTriangle, ArrowLeft } from 'lucide-react';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface OrderSummaryAndCheckoutProps {
@@ -16,6 +16,50 @@ interface OrderSummaryAndCheckoutProps {
   proteinLabels?: Record<string, string>;
   forceSuccessOrderId?: string | null;
   onClearForceSuccess?: () => void;
+}
+
+// Helper to calculate CRC16 CCITT for static Pix payload
+function crc16CCITT(str: string): string {
+  let crc = 0xFFFF;
+  for (let c = 0; c < str.length; c++) {
+    crc ^= str.charCodeAt(c) << 8;
+    for (let i = 0; i < 8; i++) {
+      if (crc & 0x8000) {
+        crc = (crc << 1) ^ 0x1021;
+      } else {
+        crc = crc << 1;
+      }
+    }
+  }
+  let hex = (crc & 0xFFFF).toString(16).toUpperCase();
+  return hex.padStart(4, '0');
+}
+
+// Helper to generate static Pix payload string
+function generateStaticPix(key: string, name: string, city: string, amount: number, txid: string = '***'): string {
+  const f = (id: string, val: string) => id + String(val.length).padStart(2, '0') + val;
+
+  const cleanKey = key.replace(/\s+/g, '');
+  const merchantAccountInfo = f('00', 'br.gov.bcb.pix') + f('01', cleanKey);
+
+  const cleanTxid = txid.replace(/[^a-zA-Z0-9]/g, '').slice(0, 25) || '***';
+  const additionalData = f('05', cleanTxid);
+
+  let payload = 
+    f('00', '01') + // Format indicator
+    f('26', merchantAccountInfo) +
+    f('52', '0000') + // Merchant Category
+    f('53', '986') + // BRL Currency
+    f('54', Number(amount).toFixed(2)) + // Amount
+    f('58', 'BR') + // Country
+    f('59', name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 25)) + // Name
+    f('60', city.normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 15)) + // City
+    f('62', additionalData);
+
+  payload += '6304'; // CRC16 indicator
+  payload += crc16CCITT(payload);
+
+  return payload;
 }
 
 export default function OrderSummaryAndCheckout({
@@ -45,12 +89,28 @@ export default function OrderSummaryAndCheckout({
 
   // Transparent Pix States
   const [showPixModal, setShowPixModal] = useState(false);
-  const [pixQrCodeBase64, setPixQrCodeBase64] = useState('');
+  const [pixQrCodeUrl, setPixQrCodeUrl] = useState('');
   const [pixCopyPasteKey, setPixCopyPasteKey] = useState('');
   const [pixPaymentId, setPixPaymentId] = useState('');
   const [copiedPix, setCopiedPix] = useState(false);
 
   const currentOrderIdRef = useRef('');
+  const [manualPixConfig, setManualPixConfig] = useState<{ key: string; name: string; city: string } | null>(null);
+
+  // Carrega em tempo real a chave Pix configurada no admin
+  useEffect(() => {
+    const unsubPix = onSnapshot(doc(db, 'config', 'pix_key'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setManualPixConfig({
+          key: data.key || '',
+          name: data.name || '',
+          city: data.city || 'Maceio'
+        });
+      }
+    });
+    return () => unsubPix();
+  }, []);
 
   // Polling for Pix Payment Status
   useEffect(() => {
@@ -349,38 +409,63 @@ export default function OrderSummaryAndCheckout({
       }
       setOrderSent(true);
     } else if (paymentMethod === 'pix') {
-      // Se for Pix, inicia o Checkout Transparente
       setIsProcessing(true);
-      try {
-        const response = await fetch('/api/create-pix-payment', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            orderId,
-            totalAmount: grandTotal,
-            customerName,
-            customerPhone
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Falha ao gerar cobrança Pix.');
+      
+      // Se tiver uma chave Pix cadastrada no painel admin, usa a geração de Pix estático local
+      if (manualPixConfig && manualPixConfig.key.trim() !== '') {
+        try {
+          const staticPixPayload = generateStaticPix(
+            manualPixConfig.key,
+            manualPixConfig.name || 'Divino Lanches',
+            manualPixConfig.city || 'Maceio',
+            grandTotal,
+            orderId
+          );
+          
+          currentOrderIdRef.current = orderId;
+          setPixQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(staticPixPayload)}`);
+          setPixCopyPasteKey(staticPixPayload);
+          setPixPaymentId(''); // Indica que é Pix manual (desativa o polling)
+          setShowPixModal(true);
+          setIsProcessing(false);
+        } catch (err) {
+          console.error('Erro ao gerar Pix estático:', err);
+          setValidationError('Erro ao processar a chave Pix manual. Por favor, selecione outra forma de pagamento.');
+          setIsProcessing(false);
         }
+      } else {
+        // Se NÃO tiver chave cadastrada no admin, usa o Mercado Pago automático
+        try {
+          const response = await fetch('/api/create-pix-payment', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              orderId,
+              totalAmount: grandTotal,
+              customerName,
+              customerPhone
+            })
+          });
 
-        const data = await response.json();
-        
-        currentOrderIdRef.current = orderId;
-        setPixQrCodeBase64(data.qrCodeBase64);
-        setPixCopyPasteKey(data.qrCode);
-        setPixPaymentId(data.paymentId);
-        setShowPixModal(true);
-        setIsProcessing(false);
-      } catch (err) {
-        console.error('Erro ao processar Pix Transparente:', err);
-        setValidationError('Erro ao gerar a cobrança Pix. Por favor, tente novamente ou escolha pagar na entrega.');
-        setIsProcessing(false);
+          if (!response.ok) {
+            throw new Error('Falha ao gerar cobrança Pix.');
+          }
+
+          const data = await response.json();
+          
+          currentOrderIdRef.current = orderId;
+          setPixQrCodeUrl(`data:image/jpeg;base64,${data.qrCodeBase64}`);
+          setPixCopyPasteKey(data.qrCode);
+          setPixPaymentId(data.paymentId);
+          setShowPixModal(true);
+          setIsProcessing(false);
+        } catch (err) {
+          console.error('Erro ao processar Pix Transparente:', err);
+          setValidationError('Erro ao gerar a cobrança Pix. Por favor, tente novamente ou escolha pagar na entrega.');
+          setIsProcessing(false);
+        }
       }
     } else {
       // Se for cartão, inicia o Checkout Pro e abre em uma nova guia
@@ -887,19 +972,25 @@ export default function OrderSummaryAndCheckout({
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full border border-amber-100 shadow-2xl flex flex-col items-center gap-6 relative"
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full border border-amber-100 shadow-2xl flex flex-col items-center gap-5 relative"
             >
               <div className="text-center w-full">
                 <span className="text-3xl">⚡</span>
-                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mt-2">Pagamento via Pix</h3>
-                <p className="text-xs text-slate-400 mt-1">Escaneie o código abaixo com o aplicativo do seu banco</p>
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mt-2">
+                  {pixPaymentId ? 'Pagamento via Pix' : 'Transferência Pix'}
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {pixPaymentId 
+                    ? 'Escaneie o código abaixo com o aplicativo do seu banco' 
+                    : 'Transfira o valor para a chave Pix abaixo e envie o comprovante'}
+                </p>
               </div>
 
               {/* QR Code Container */}
               <div className="w-48 h-48 bg-linear-to-b from-stone-50 to-stone-100 border border-stone-200 rounded-2xl flex items-center justify-center p-2.5 shadow-inner">
-                {pixQrCodeBase64 ? (
+                {pixQrCodeUrl ? (
                   <img
-                    src={`data:image/jpeg;base64,${pixQrCodeBase64}`}
+                    src={pixQrCodeUrl}
                     alt="QR Code Pix"
                     className="w-full h-full object-contain rounded-xl"
                   />
@@ -910,7 +1001,9 @@ export default function OrderSummaryAndCheckout({
 
               {/* Copy & Paste Code */}
               <div className="w-full space-y-1.5">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Código Pix Copia e Cola</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">
+                  {pixPaymentId ? 'Código Pix Copia e Cola' : 'Chave Pix (Copia e Cola)'}
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -937,30 +1030,96 @@ export default function OrderSummaryAndCheckout({
                 </div>
               </div>
 
-              {/* Polling Spinner */}
-              <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-150 px-4 py-2.5 rounded-2xl w-full justify-center">
-                <span className="w-4.5 h-4.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
-                <span className="text-xs font-bold text-emerald-850 animate-pulse">Aguardando pagamento pelo banco...</span>
-              </div>
+              {/* Beneficiary details for manual Pix */}
+              {!pixPaymentId && manualPixConfig && (
+                <div className="w-full text-left bg-slate-50 border border-slate-200/60 p-3.5 rounded-2xl text-[11px] text-slate-600 space-y-1.5 font-sans">
+                  <p className="flex justify-between">
+                    <span className="text-slate-400">Favorecido:</span> 
+                    <strong className="text-slate-800 capitalize">{manualPixConfig.name}</strong>
+                  </p>
+                  <p className="flex justify-between">
+                    <span className="text-slate-400">Cidade:</span> 
+                    <strong className="text-slate-800 uppercase">{manualPixConfig.city}</strong>
+                  </p>
+                  <p className="flex justify-between border-t border-slate-200/50 pt-1.5 mt-1.5">
+                    <span className="text-slate-400">Valor a pagar:</span> 
+                    <strong className="text-brand-red font-mono text-xs">R$ {grandTotal.toFixed(2)}</strong>
+                  </p>
+                </div>
+              )}
+
+              {/* Polling Spinner (Only for automated Mercado Pago Pix) */}
+              {pixPaymentId ? (
+                <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-150 px-4 py-2.5 rounded-2xl w-full justify-center">
+                  <span className="w-4.5 h-4.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                  <span className="text-xs font-bold text-emerald-850 animate-pulse">Aguardando pagamento pelo banco...</span>
+                </div>
+              ) : (
+                /* WhatsApp Submit Button (Only for manual Pix key) */
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const whatsappMsg = generateOrderMessage(currentOrderIdRef.current);
+                    const payLabels = {
+                      pix: 'Pix ⚡ (Transferência Manual - Enviar Comprovante)',
+                      cartao_credito: 'Cartão de Crédito 💳',
+                      cartao_debito: 'Cartão de Débito 💳',
+                      dinheiro: 'Dinheiro 💵',
+                    };
+                    const customMessage = whatsappMsg.replace(
+                      /💳 \*Forma de Pagamento\*: .*/,
+                      `💳 *Forma de Pagamento:* ${payLabels.pix}`
+                    );
+                    const encoded = encodeURIComponent(customMessage);
+                    const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
+                    
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    if (isMobile) {
+                      window.location.href = whatsappUrl;
+                    } else {
+                      window.open(whatsappUrl, '_blank');
+                    }
+
+                    // Salva com paid: false, pois precisa que o administrador valide o Pix manualmente
+                    const orderRef = doc(db, 'orders', currentOrderIdRef.current);
+                    await setDoc(orderRef, { confirmed: false, paid: false }, { merge: true });
+
+                    setShowPixModal(false);
+                    onClearCart();
+                    setOrderSent(true);
+                  }}
+                  className="w-full bg-emerald-650 hover:bg-emerald-700 text-white font-extrabold py-4 px-4 rounded-2xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg cursor-pointer transition-all text-sm focus:ring-2 focus:ring-emerald-300"
+                >
+                  <CheckCircle className="w-5 h-5 stroke-[2.5]" />
+                  <span>Já paguei! Confirmar no WhatsApp</span>
+                </button>
+              )}
 
               {/* Footer Actions */}
               <div className="w-full flex flex-col gap-2 pt-2 border-t border-slate-100">
-                <p className="text-[9px] text-slate-450 text-center leading-relaxed">
-                  * Não feche esta janela até concluir o pagamento. O site confirmará seu pedido automaticamente em tempo real assim que o Pix for recebido.
+                <p className="text-[9.5px] text-slate-450 text-center leading-relaxed font-medium">
+                  {pixPaymentId 
+                    ? '* Não feche esta janela. O site confirmará seu pedido automaticamente em tempo real assim que o Pix for recebido.' 
+                    : '* Transfira o valor exato pelo seu banco. Em seguida, clique no botão acima para nos enviar o comprovante via WhatsApp.'}
                 </p>
                 
                 <button
                   type="button"
                   onClick={() => {
-                    if (window.confirm('Deseja cancelar o pagamento Pix? Seu pedido não será enviado.')) {
+                    const confirmMsg = pixPaymentId
+                      ? 'Deseja cancelar o pagamento Pix? Seu pedido não será enviado.'
+                      : 'Deseja fechar a janela? Seu pedido ainda não foi enviado para o WhatsApp.';
+                    if (window.confirm(confirmMsg)) {
                       setShowPixModal(false);
                       setPixPaymentId('');
-                      setValidationError('Pagamento Pix cancelado pelo usuário.');
+                      if (pixPaymentId) {
+                        setValidationError('Pagamento Pix cancelado pelo usuário.');
+                      }
                     }
                   }}
                   className="w-full py-2.5 text-center text-xs font-extrabold text-red-500 hover:text-red-750 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
                 >
-                  Cancelar Pagamento
+                  {pixPaymentId ? 'Cancelar Pagamento' : 'Fechar Janela'}
                 </button>
               </div>
             </motion.div>
