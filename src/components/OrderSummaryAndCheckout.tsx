@@ -165,8 +165,7 @@ export default function OrderSummaryAndCheckout({
       text += `💵 *Troco para:* R$ ${changeFor}\n`;
     }
 
-    text += `\n🕒 Feito em: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}\n`;
-    text += `💡 Obrigado pela preferência! Divino Lanches agradece. 🙏👑`;
+    text += `\n🕒 Feito em: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 
     return text;
   };
