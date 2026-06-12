@@ -86,6 +86,57 @@ export default function AdminPanel({
   const [activeSubTab, setActiveSubTab] = useState<'pedidos' | 'cardapio' | 'estatisticas' | 'config'>('pedidos');
   const [ordersFilter, setOrdersFilter] = useState<'pending' | 'confirmed' | 'delivered'>('pending');
 
+  const prevPendingCountRef = React.useRef<number | null>(null);
+
+  // Web Audio API helper for chime sound
+  const playNotificationSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Tone 1 (D5)
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+      gain1.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
+      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc1.start(audioCtx.currentTime);
+      osc1.stop(audioCtx.currentTime + 0.4);
+      
+      // Tone 2 (A5, delayed)
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1);
+      gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.1);
+      gain2.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+      osc2.start(audioCtx.currentTime + 0.1);
+      osc2.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+      console.warn('Erro ao tocar som de notificação:', e);
+    }
+  };
+
+  // Monitor incoming unconfirmed orders and play sound if a new one is received
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
+    const pendingCount = orders.filter(o => !o.confirmed).length;
+    
+    // Only play sound if the count increases and we have initialized the ref
+    if (prevPendingCountRef.current !== null && pendingCount > prevPendingCountRef.current) {
+      playNotificationSound();
+    }
+    
+    prevPendingCountRef.current = pendingCount;
+  }, [orders, isLoggedIn]);
+
   // Inline editing state for Cardápio tab
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -353,14 +404,17 @@ export default function AdminPanel({
       <div className="flex border-b border-slate-100 bg-slate-50/50 p-2 gap-1.5">
         <button
           onClick={() => { setActiveSubTab('pedidos'); setOrdersFilter('pending'); }}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
             activeSubTab === 'pedidos'
               ? 'bg-brand-charcoal text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
           }`}
         >
           <ShoppingBag className="w-3.5 h-3.5" />
-          Pedidos ({totalOrdersCount})
+          <span>Pedidos ({totalOrdersCount})</span>
+          {orders.some(o => !o.confirmed) && (
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          )}
         </button>
         <button
           onClick={() => setActiveSubTab('cardapio')}
