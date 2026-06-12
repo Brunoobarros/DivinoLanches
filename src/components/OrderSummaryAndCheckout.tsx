@@ -97,6 +97,23 @@ export default function OrderSummaryAndCheckout({
   const currentOrderIdRef = useRef('');
   const [manualPixConfig, setManualPixConfig] = useState<{ key: string; name: string; city: string } | null>(null);
 
+  // Calculators
+  const calculateSubtotal = () => {
+    const hotDogsTotal = cart.hotDogs.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const drinksTotal = cart.drinks.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    return hotDogsTotal + drinksTotal;
+  };
+
+  const getDeliveryFee = () => {
+    if (orderType === 'retirada') return 0;
+    const found = NEIGHBORHOODS.find((n) => n.name === neighborhood);
+    return found ? found.fee : 0;
+  };
+
+  const subtotal = calculateSubtotal();
+  const deliveryFee = getDeliveryFee();
+  const grandTotal = subtotal + deliveryFee;
+
   // Carrega em tempo real a chave Pix configurada no admin
   useEffect(() => {
     const unsubPix = onSnapshot(doc(db, 'config', 'pix_key'), (docSnap) => {
@@ -111,6 +128,237 @@ export default function OrderSummaryAndCheckout({
     });
     return () => unsubPix();
   }, []);
+
+  const formDataRef = useRef<any>(null);
+  formDataRef.current = {
+    customerName,
+    customerPhone,
+    street,
+    num,
+    neighborhood,
+    reference,
+    paymentMethod,
+    changeFor,
+    orderType,
+    cart,
+    subtotal,
+    deliveryFee,
+    grandTotal
+  };
+
+  const cardBrickInstanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    // If not card payment, unmount if it exists and exit
+    if (paymentMethod !== 'cartao_credito' && paymentMethod !== 'cartao_debito') {
+      if (cardBrickInstanceRef.current) {
+        cardBrickInstanceRef.current.unmount();
+        cardBrickInstanceRef.current = null;
+      }
+      return;
+    }
+
+    // If card payment, initialize the brick
+    const initCardBrick = async () => {
+      const container = document.getElementById('cardPaymentBrick_container');
+      if (!container) return;
+
+      if (cardBrickInstanceRef.current) {
+        try {
+          await cardBrickInstanceRef.current.unmount();
+        } catch (e) {
+          console.warn('Error unmounting card brick:', e);
+        }
+        cardBrickInstanceRef.current = null;
+      }
+
+      if (!(window as any).MercadoPago) {
+        console.error('SDK do Mercado Pago não carregado.');
+        return;
+      }
+
+      try {
+        const mp = new (window as any).MercadoPago(import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY, {
+          locale: 'pt-BR'
+        });
+
+        const bricksBuilder = mp.bricks();
+        const safeEmail = `cliente_${String(Date.now()).slice(-6)}@divinolanches.com.br`;
+
+        const settings = {
+          initialization: {
+            amount: grandTotal,
+            payer: {
+              email: safeEmail
+            }
+          },
+          customization: {
+            visual: {
+              style: {
+                theme: 'flat'
+              }
+            },
+            paymentMethods: {
+              minInstallments: 1,
+              maxInstallments: 12
+            }
+          },
+          callbacks: {
+            onReady: () => {
+              console.log('Card Payment Brick ready');
+            },
+            onSubmit: (cardFormData: any) => {
+              return new Promise<void>(async (resolve, reject) => {
+                const current = formDataRef.current;
+                if (!current.customerName.trim()) {
+                  setValidationError('Por favor, informe seu nome!');
+                  reject();
+                  return;
+                }
+                const phoneDigits = current.customerPhone.replace(/\D/g, '');
+                if (!current.customerPhone.trim()) {
+                  setValidationError('Por favor, informe seu celular/WhatsApp!');
+                  reject();
+                  return;
+                }
+                if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+                  setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex: 82 99603-5476).');
+                  reject();
+                  return;
+                }
+                if (current.orderType === 'entrega') {
+                  if (!current.street.trim()) {
+                    setValidationError('Por favor, preencha o nome da rua para a entrega!');
+                    reject();
+                    return;
+                  }
+                  if (!current.num.trim()) {
+                    setValidationError('Por favor, informe o número da casa/apto!');
+                    reject();
+                    return;
+                  }
+                }
+
+                setIsProcessing(true);
+                setValidationError('');
+
+                const orderId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
+
+                try {
+                  const response = await fetch('/api/process-card-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      cardFormData,
+                      orderId,
+                      customerName: current.customerName,
+                      customerPhone: current.customerPhone
+                    })
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Falha ao processar pagamento com cartão.');
+                  }
+
+                  const paymentResult = await response.json();
+
+                  if (paymentResult.status === 'approved') {
+                    const savedOrder = {
+                      id: orderId,
+                      customerName: current.customerName,
+                      customerPhone: current.customerPhone,
+                      orderType: current.orderType,
+                      street: current.street,
+                      num: current.num,
+                      neighborhood: current.neighborhood,
+                      reference: current.reference,
+                      paymentMethod: current.paymentMethod,
+                      changeFor: current.changeFor,
+                      hotDogs: current.cart.hotDogs.map((d: any) => ({
+                        type: d.type,
+                        quantity: d.quantity,
+                        price: d.price,
+                        details: formatHotDogIngredients(d)
+                      })),
+                      drinks: current.cart.drinks.map((dr: any) => ({
+                        name: dr.name,
+                        quantity: dr.quantity,
+                        price: dr.price
+                      })),
+                      subtotal: current.subtotal,
+                      deliveryFee: current.deliveryFee,
+                      grandTotal: current.grandTotal,
+                      timestamp: new Date().toISOString(),
+                      confirmed: true,
+                      delivered: false,
+                      paid: true
+                    };
+
+                    const orderRef = doc(db, 'orders', orderId);
+                    await setDoc(orderRef, savedOrder);
+
+                    const whatsappMsg = generateOrderMessage(orderId);
+                    const payLabels = {
+                      pix: 'Pix ⚡',
+                      cartao_credito: 'Cartão de Crédito 💳 (PAGO ONLINE - APROVADO)',
+                      cartao_debito: 'Cartão de Débito 💳 (PAGO ONLINE - APROVADO)',
+                      dinheiro: 'Dinheiro 💵',
+                    };
+                    const customMessage = whatsappMsg.replace(
+                      /💳 \*Forma de Pagamento\*: .*/,
+                      `💳 *Forma de Pagamento:* ${payLabels[current.paymentMethod as keyof typeof payLabels]}`
+                    );
+                    const encoded = encodeURIComponent(customMessage);
+                    const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
+
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    if (isMobile) {
+                      window.location.href = whatsappUrl;
+                    } else {
+                      window.open(whatsappUrl, '_blank');
+                    }
+
+                    onClearCart();
+                    setOrderSent(true);
+                    resolve();
+                  } else {
+                    const statusMessages: Record<string, string> = {
+                      rejected: 'Pagamento rejeitado. Verifique os dados ou saldo do cartão.',
+                      in_process: 'Pagamento em análise. O pedido foi registrado, mas o pagamento está pendente.',
+                      cancelled: 'Pagamento cancelado pelo emissor do cartão.'
+                    };
+                    const msg = statusMessages[paymentResult.status] || `Pagamento com status: ${paymentResult.status} (${paymentResult.statusDetail})`;
+                    setValidationError(msg);
+                    setIsProcessing(false);
+                    reject();
+                  }
+                } catch (err: any) {
+                  console.error(err);
+                  setValidationError('Erro ao processar o cartão com o servidor. Tente novamente ou escolha pagar na entrega.');
+                  setIsProcessing(false);
+                  reject();
+                }
+              });
+            },
+            onError: (error: any) => {
+              console.error('Card Brick Error:', error);
+              setValidationError('Erro na inicialização do formulário de cartão.');
+            }
+          }
+        };
+
+        const brickController = await bricksBuilder.create('cardPayment', 'cardPaymentBrick_container', settings);
+        cardBrickInstanceRef.current = brickController;
+      } catch (e) {
+        console.error('Error rendering Card Brick:', e);
+      }
+    };
+
+    const timer = setTimeout(initCardBrick, 100);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [paymentMethod, grandTotal, orderType]);
 
   // Polling for Pix Payment Status
   useEffect(() => {
@@ -201,22 +449,7 @@ export default function OrderSummaryAndCheckout({
   // Cart helper functions
   const hasItems = cart.hotDogs.length > 0 || cart.drinks.length > 0;
 
-  // Calculators
-  const calculateSubtotal = () => {
-    const hotDogsTotal = cart.hotDogs.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const drinksTotal = cart.drinks.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    return hotDogsTotal + drinksTotal;
-  };
-
-  const getDeliveryFee = () => {
-    if (orderType === 'retirada') return 0;
-    const found = NEIGHBORHOODS.find((n) => n.name === neighborhood);
-    return found ? found.fee : 0;
-  };
-
-  const subtotal = calculateSubtotal();
-  const deliveryFee = getDeliveryFee();
-  const grandTotal = subtotal + deliveryFee;
+  // Calculators have been moved to the top of the component
 
   // Render text for hot dog ingredients to display clearly in cart and WhatsApp
   const formatHotDogIngredients = (dog: HotDogItem) => {
@@ -886,29 +1119,33 @@ export default function OrderSummaryAndCheckout({
 
           {/* Submit Actions */}
           <div className="grid grid-cols-1 gap-2 pt-2">
-            <motion.button
-              whileTap={isProcessing ? undefined : { scale: 0.98 }}
-              type="button"
-              onClick={isProcessing ? undefined : handleSendOrder}
-              disabled={isProcessing}
-              className={`w-full font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all text-base focus:ring-2 ${
-                isProcessing
-                  ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer focus:ring-emerald-300'
-              }`}
-            >
-              {isProcessing ? (
-                <>
-                  <span className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
-                  <span>Redirecionando para o Pagamento...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="w-5 h-5 stroke-[2.5]" />
-                  <span>Finalizar Pedido</span>
-                </>
-              )}
-            </motion.button>
+            {paymentMethod === 'cartao_credito' || paymentMethod === 'cartao_debito' ? (
+              <div id="cardPaymentBrick_container" className="w-full mt-2" />
+            ) : (
+              <motion.button
+                whileTap={isProcessing ? undefined : { scale: 0.98 }}
+                type="button"
+                onClick={isProcessing ? undefined : handleSendOrder}
+                disabled={isProcessing}
+                className={`w-full font-extrabold py-4 px-6 rounded-2xl flex items-center justify-center gap-2.5 shadow-md hover:shadow-lg transition-all text-base focus:ring-2 ${
+                  isProcessing
+                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer focus:ring-emerald-300'
+                }`}
+              >
+                {isProcessing ? (
+                  <>
+                    <span className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                    <span>Redirecionando para o Pagamento...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5 stroke-[2.5]" />
+                    <span>Finalizar Pedido</span>
+                  </>
+                )}
+              </motion.button>
+            )}
           </div>
 
         </div>
