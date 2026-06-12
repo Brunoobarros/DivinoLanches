@@ -117,8 +117,8 @@ export default function OrderSummaryAndCheckout({
   };
 
   // Compile final WhatsApp text
-  const generateOrderMessage = () => {
-    let text = `✨ *NOVO PEDIDO - DIVINO DOG* ✨\n`;
+  const generateOrderMessage = (orderId: string) => {
+    let text = `✨ *NOVO PEDIDO - ${orderId}* ✨\n`;
     text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
     text += `👤 *Cliente:* ${customerName}\n`;
     text += `📞 *WhatsApp:* ${customerPhone}\n`;
@@ -205,15 +205,15 @@ export default function OrderSummaryAndCheckout({
       // Prompt warning but let configure
     }
 
-    const message = generateOrderMessage();
+    // Generate unique ID using last 4 digits of timestamp + random 2-digit number (e.g. PED-5921-12)
+    const orderId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
+
+    const message = generateOrderMessage(orderId);
     const encoded = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
 
     // Salva o pedido no Firestore e no histórico local
     try {
-      // Generate unique ID using last 4 digits of timestamp + random 2-digit number (e.g. PED-5921-12)
-      const orderId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
-      
       const savedOrder = {
         id: orderId,
         customerName,
@@ -275,7 +275,8 @@ export default function OrderSummaryAndCheckout({
   };
 
   const copyToClipboard = () => {
-    const text = generateOrderMessage();
+    const tempId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
+    const text = generateOrderMessage(tempId);
     navigator.clipboard.writeText(text).then(() => {
       setCopiedToClipboard(true);
       setTimeout(() => setCopiedToClipboard(false), 3000);
