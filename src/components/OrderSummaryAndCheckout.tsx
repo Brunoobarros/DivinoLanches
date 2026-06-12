@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder } from '../types';
 import { NEIGHBORHOODS, WHATSAPP_NUMBER } from '../constants';
@@ -42,6 +42,78 @@ export default function OrderSummaryAndCheckout({
   
   const [validationError, setValidationError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Transparent Pix States
+  const [showPixModal, setShowPixModal] = useState(false);
+  const [pixQrCodeBase64, setPixQrCodeBase64] = useState('');
+  const [pixCopyPasteKey, setPixCopyPasteKey] = useState('');
+  const [pixPaymentId, setPixPaymentId] = useState('');
+  const [copiedPix, setCopiedPix] = useState(false);
+
+  const currentOrderIdRef = useRef('');
+
+  // Polling for Pix Payment Status
+  useEffect(() => {
+    let intervalId: any;
+
+    if (showPixModal && pixPaymentId) {
+      const checkStatus = async () => {
+        try {
+          const response = await fetch(`/api/check-payment?id=${pixPaymentId}`);
+          if (!response.ok) return;
+          const data = await response.json();
+
+          if (data.status === 'approved') {
+            // Payment approved!
+            // 1. Update Firestore
+            const orderRef = doc(db, 'orders', currentOrderIdRef.current);
+            await setDoc(orderRef, { paid: true, confirmed: true }, { merge: true });
+
+            // 2. Open WhatsApp link
+            const whatsappMsg = generateOrderMessage(currentOrderIdRef.current);
+            // Append paid badge to WhatsApp
+            const payLabels = {
+              pix: 'Pix ⚡ (PAGO ONLINE - CONFIRMADO)',
+              cartao_credito: 'Cartão de Crédito 💳',
+              cartao_debito: 'Cartão de Débito 💳',
+              dinheiro: 'Dinheiro 💵',
+            };
+            const customMessage = whatsappMsg.replace(
+              /💳 \*Forma de Pagamento\*: .*/,
+              `💳 *Forma de Pagamento:* ${payLabels.pix}`
+            );
+            const encoded = encodeURIComponent(customMessage);
+            const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
+            
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) {
+              window.location.href = whatsappUrl;
+            } else {
+              window.open(whatsappUrl, '_blank');
+            }
+
+            // 3. Clear cart and set success screen
+            setShowPixModal(false);
+            onClearCart();
+            setOrderSent(true);
+          } else if (data.status === 'rejected' || data.status === 'cancelled') {
+            setValidationError('Pagamento Pix rejeitado ou cancelado pelo Mercado Pago. Por favor, tente novamente.');
+            setShowPixModal(false);
+          }
+        } catch (err) {
+          console.error('Erro ao verificar status do Pix:', err);
+        }
+      };
+
+      intervalId = setInterval(checkStatus, 4000);
+      // Run once immediately
+      checkStatus();
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [showPixModal, pixPaymentId]);
 
   // Format phone number as user types: (82) 99603-5476
   const formatPhone = (value: string): string => {
@@ -276,8 +348,42 @@ export default function OrderSummaryAndCheckout({
         console.error('Erro ao abrir o WhatsApp', e);
       }
       setOrderSent(true);
+    } else if (paymentMethod === 'pix') {
+      // Se for Pix, inicia o Checkout Transparente
+      setIsProcessing(true);
+      try {
+        const response = await fetch('/api/create-pix-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            orderId,
+            totalAmount: grandTotal,
+            customerName,
+            customerPhone
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Falha ao gerar cobrança Pix.');
+        }
+
+        const data = await response.json();
+        
+        currentOrderIdRef.current = orderId;
+        setPixQrCodeBase64(data.qrCodeBase64);
+        setPixCopyPasteKey(data.qrCode);
+        setPixPaymentId(data.paymentId);
+        setShowPixModal(true);
+        setIsProcessing(false);
+      } catch (err) {
+        console.error('Erro ao processar Pix Transparente:', err);
+        setValidationError('Erro ao gerar a cobrança Pix. Por favor, tente novamente ou escolha pagar na entrega.');
+        setIsProcessing(false);
+      }
     } else {
-      // Se for pagamento online (Pix/Cartão), inicia o checkout do Mercado Pago
+      // Se for cartão, inicia o Checkout Pro e abre em uma nova guia
       setIsProcessing(true);
       try {
         const response = await fetch('/api/create-preference', {
@@ -311,11 +417,11 @@ export default function OrderSummaryAndCheckout({
         }
 
         const data = await response.json();
-        // Em ambiente sandbox de teste, usamos sandbox_init_point se disponível
         const paymentUrl = data.sandbox_init_point || data.init_point;
         
-        // Redireciona o cliente para o Checkout do Mercado Pago
-        window.location.href = paymentUrl;
+        window.open(paymentUrl, '_blank');
+        setValidationError('Abri o checkout do cartão em uma nova aba do navegador. Complete o pagamento lá para receber a confirmação!');
+        setIsProcessing(false);
       } catch (err) {
         console.error('Erro ao iniciar pagamento Mercado Pago:', err);
         setValidationError('Erro ao processar o pagamento online. Por favor, tente novamente ou escolha pagar na entrega.');
@@ -768,6 +874,99 @@ export default function OrderSummaryAndCheckout({
         </div>
       )}
 
+      {/* Pix Payment Modal Overlay */}
+      <AnimatePresence>
+        {showPixModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full border border-amber-100 shadow-2xl flex flex-col items-center gap-6 relative"
+            >
+              <div className="text-center w-full">
+                <span className="text-3xl">⚡</span>
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mt-2">Pagamento via Pix</h3>
+                <p className="text-xs text-slate-400 mt-1">Escaneie o código abaixo com o aplicativo do seu banco</p>
+              </div>
+
+              {/* QR Code Container */}
+              <div className="w-48 h-48 bg-linear-to-b from-stone-50 to-stone-100 border border-stone-200 rounded-2xl flex items-center justify-center p-2.5 shadow-inner">
+                {pixQrCodeBase64 ? (
+                  <img
+                    src={`data:image/jpeg;base64,${pixQrCodeBase64}`}
+                    alt="QR Code Pix"
+                    className="w-full h-full object-contain rounded-xl"
+                  />
+                ) : (
+                  <div className="w-8 h-8 border-2 border-brand-red border-t-transparent rounded-full animate-spin" />
+                )}
+              </div>
+
+              {/* Copy & Paste Code */}
+              <div className="w-full space-y-1.5">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Código Pix Copia e Cola</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={pixCopyPasteKey}
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-655 font-mono focus:outline-hidden"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(pixCopyPasteKey);
+                      setCopiedPix(true);
+                      setTimeout(() => setCopiedPix(false), 2000);
+                    }}
+                    className={`px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all cursor-pointer ${
+                      copiedPix
+                        ? 'bg-emerald-600 text-white shadow-md'
+                        : 'bg-brand-charcoal text-white hover:bg-slate-850 shadow-sm'
+                    }`}
+                  >
+                    {copiedPix ? 'Copiado! ✓' : 'Copiar'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Polling Spinner */}
+              <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-150 px-4 py-2.5 rounded-2xl w-full justify-center">
+                <span className="w-4.5 h-4.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                <span className="text-xs font-bold text-emerald-850 animate-pulse">Aguardando pagamento pelo banco...</span>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="w-full flex flex-col gap-2 pt-2 border-t border-slate-100">
+                <p className="text-[9px] text-slate-450 text-center leading-relaxed">
+                  * Não feche esta janela até concluir o pagamento. O site confirmará seu pedido automaticamente em tempo real assim que o Pix for recebido.
+                </p>
+                
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm('Deseja cancelar o pagamento Pix? Seu pedido não será enviado.')) {
+                      setShowPixModal(false);
+                      setPixPaymentId('');
+                      setValidationError('Pagamento Pix cancelado pelo usuário.');
+                    }
+                  }}
+                  className="w-full py-2.5 text-center text-xs font-extrabold text-red-500 hover:text-red-750 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
+                >
+                  Cancelar Pagamento
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
