@@ -44,4 +44,4 @@ export const NEIGHBORHOODS: NeighborhoodFee[] = [
   { name: 'Outros (Consultar taxa)', fee: 12.00 },
 ];
 
-export const WHATSAPP_NUMBER = '5511999999999'; // Placeholder or custom phone number
+export const WHATSAPP_NUMBER = '5582996035476';
