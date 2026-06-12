@@ -395,8 +395,8 @@ export default function OrderSummaryAndCheckout({
       console.error('Erro ao salvar pedido', e);
     }
 
-    // Se o pagamento for em dinheiro, vai direto para o WhatsApp
-    if (paymentMethod === 'dinheiro') {
+    // Se o pagamento for em dinheiro ou cartão, vai direto para o WhatsApp (pagamento na entrega/retirada)
+    if (paymentMethod === 'dinheiro' || paymentMethod === 'cartao_credito' || paymentMethod === 'cartao_debito') {
       try {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         if (isMobile) {
@@ -466,51 +466,6 @@ export default function OrderSummaryAndCheckout({
           setValidationError('Erro ao gerar a cobrança Pix. Por favor, tente novamente ou escolha pagar na entrega.');
           setIsProcessing(false);
         }
-      }
-    } else {
-      // Se for cartão, inicia o Checkout Pro e abre em uma nova guia
-      setIsProcessing(true);
-      try {
-        const response = await fetch('/api/create-preference', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            orderId,
-            items: [
-              ...cart.hotDogs.map(d => ({
-                id: d.type,
-                name: `Dog de ${proteinLabels?.[d.type] || d.type}`,
-                quantity: d.quantity,
-                price: d.price
-              })),
-              ...cart.drinks.map(dr => ({
-                id: dr.drinkId,
-                name: dr.name,
-                quantity: dr.quantity,
-                price: dr.price
-              }))
-            ],
-            deliveryFee: orderType === 'entrega' ? deliveryFee : 0,
-            customerName
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error('Falha ao gerar preferência de pagamento.');
-        }
-
-        const data = await response.json();
-        const paymentUrl = data.sandbox_init_point || data.init_point;
-        
-        window.open(paymentUrl, '_blank');
-        setValidationError('Abri o checkout do cartão em uma nova aba do navegador. Complete o pagamento lá para receber a confirmação!');
-        setIsProcessing(false);
-      } catch (err) {
-        console.error('Erro ao iniciar pagamento Mercado Pago:', err);
-        setValidationError('Erro ao processar o pagamento online. Por favor, tente novamente ou escolha pagar na entrega.');
-        setIsProcessing(false);
       }
     }
   };

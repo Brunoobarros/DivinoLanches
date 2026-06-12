@@ -411,11 +411,11 @@ export default function App() {
 
   // Order Handlers
   const handleConfirmOrder = async (orderId: string) => {
-    await updateDoc(doc(db, 'orders', orderId), { confirmed: true });
+    await updateDoc(doc(db, 'orders', orderId), { confirmed: true, paid: true });
   };
 
   const handleUnconfirmOrder = async (orderId: string) => {
-    await updateDoc(doc(db, 'orders', orderId), { confirmed: false, delivered: false });
+    await updateDoc(doc(db, 'orders', orderId), { confirmed: false, delivered: false, paid: false });
   };
 
   const handleMarkAsDelivered = async (orderId: string) => {

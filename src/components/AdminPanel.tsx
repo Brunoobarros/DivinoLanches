@@ -619,13 +619,6 @@ export default function AdminPanel({
                               }`}>
                                 {o.orderType === 'entrega' ? '🛵 Entrega' : '🏪 Retirada'}
                               </span>
-                              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-sm ${
-                                o.paid 
-                                  ? 'bg-emerald-100 text-emerald-800' 
-                                  : 'bg-amber-100 text-amber-800'
-                              }`}>
-                                {o.paid ? '🟢 Pago' : '🟡 A Pagar'}
-                              </span>
                               <button 
                                 onClick={() => deleteOrder(o.id)}
                                 className="text-slate-400 hover:text-red-550 p-1 transition-colors cursor-pointer"
@@ -667,11 +660,6 @@ export default function AdminPanel({
                           <div className="flex items-center justify-between border-t border-slate-200/50 pt-2 mt-2.5 text-[10px] text-slate-500">
                             <div>
                               <strong>Pagamento:</strong> {o.paymentMethod.toUpperCase().replace('_', ' ')}
-                              {o.paid ? (
-                                <span className="text-emerald-600 font-extrabold ml-1">(PAGO ONLINE)</span>
-                              ) : (
-                                <span className="text-amber-600 font-extrabold ml-1">(A PAGAR)</span>
-                              )}
                               {o.changeFor && <span> (Troco p/ R$ {o.changeFor})</span>}
                             </div>
                             <div className="text-right">
