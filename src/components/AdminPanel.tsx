@@ -401,10 +401,10 @@ export default function AdminPanel({
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex border-b border-slate-100 bg-slate-50/50 p-2 gap-1.5">
+      <div className="flex border-b border-slate-100 bg-slate-50/50 p-2 gap-1.5 overflow-x-auto flex-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
         <button
           onClick={() => { setActiveSubTab('pedidos'); setOrdersFilter('pending'); }}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer relative ${
+          className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer relative shrink-0 min-w-[130px] sm:min-w-0 sm:flex-1 snap-center ${
             activeSubTab === 'pedidos'
               ? 'bg-brand-charcoal text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
@@ -418,36 +418,36 @@ export default function AdminPanel({
         </button>
         <button
           onClick={() => setActiveSubTab('cardapio')}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 min-w-[110px] sm:min-w-0 sm:flex-1 snap-center ${
             activeSubTab === 'cardapio'
               ? 'bg-brand-charcoal text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
           }`}
         >
           <Edit3 className="w-3.5 h-3.5" />
-          Cardápio
+          <span>Cardápio</span>
         </button>
         <button
           onClick={() => setActiveSubTab('estatisticas')}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 min-w-[125px] sm:min-w-0 sm:flex-1 snap-center ${
             activeSubTab === 'estatisticas'
               ? 'bg-brand-charcoal text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
           }`}
         >
           <BarChart3 className="w-3.5 h-3.5" />
-          Estatísticas
+          <span>Estatísticas</span>
         </button>
         <button
           onClick={() => setActiveSubTab('config')}
-          className={`flex-1 py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+          className={`py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 min-w-[105px] sm:min-w-0 sm:flex-1 snap-center ${
             activeSubTab === 'config'
               ? 'bg-brand-charcoal text-white shadow-xs'
               : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
           }`}
         >
           <Settings className="w-3.5 h-3.5" />
-          Ajustes
+          <span>Ajustes</span>
         </button>
       </div>
 
