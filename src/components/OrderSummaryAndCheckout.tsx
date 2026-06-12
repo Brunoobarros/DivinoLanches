@@ -258,9 +258,14 @@ export default function OrderSummaryAndCheckout({
       console.error('Erro ao salvar pedido', e);
     }
 
-    // Redireciona para o WhatsApp
+    // Redireciona para o WhatsApp (evita tela branca no celular)
     try {
-      window.open(whatsappUrl, '_blank');
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = whatsappUrl;
+      } else {
+        window.open(whatsappUrl, '_blank');
+      }
     } catch (e) {
       console.error('Erro ao abrir o WhatsApp', e);
     }
