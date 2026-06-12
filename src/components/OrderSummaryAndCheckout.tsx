@@ -118,7 +118,9 @@ export default function OrderSummaryAndCheckout({
 
   // Compile final WhatsApp text
   const generateOrderMessage = (orderId: string) => {
+    const timeStr = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     let text = `✨ *NOVO PEDIDO - ${orderId}* ✨\n`;
+    text += `🕒 Feito em: ${timeStr}\n`;
     text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
     text += `👤 *Cliente:* ${customerName}\n`;
     text += `📞 *WhatsApp:* ${customerPhone}\n`;
@@ -165,9 +167,7 @@ export default function OrderSummaryAndCheckout({
       text += `💵 *Troco para:* R$ ${changeFor}\n`;
     }
 
-    text += `\n🕒 Feito em: ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-
-    return text;
+    return text.trim();
   };
 
   const handleSendOrder = async (e: React.FormEvent) => {
