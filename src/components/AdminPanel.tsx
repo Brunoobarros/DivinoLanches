@@ -18,51 +18,8 @@ import {
   Edit3
 } from 'lucide-react';
 import { PROTEIN_LABELS } from '../constants';
-import { MenuItem } from '../types';
+import { MenuItem, SavedOrder, BasicIngredientConfig, ExtraConfig } from '../types';
 import logoImg from '../../assets/logo.png';
-
-interface SavedOrder {
-  id: string;
-  customerName: string;
-  customerPhone: string;
-  orderType: 'retirada' | 'entrega';
-  street?: string;
-  num?: string;
-  neighborhood?: string;
-  reference?: string;
-  paymentMethod: 'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro';
-  changeFor?: string;
-  hotDogs: Array<{
-    type: string;
-    quantity: number;
-    price: number;
-    details: string;
-  }>;
-  drinks: Array<{
-    name: string;
-    quantity: number;
-    price: number;
-  }>;
-  subtotal: number;
-  deliveryFee: number;
-  grandTotal: number;
-  timestamp: string;
-  confirmed?: boolean;
-  delivered?: boolean;
-}
-
-interface BasicIngredientConfig {
-  id: string;
-  name: string;
-  description: string;
-}
-
-interface ExtraConfig {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-}
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -74,6 +31,16 @@ interface AdminPanelProps {
   drinksMenu: MenuItem[];
   onUpdateHotDogsMenu: (menu: MenuItem[]) => void;
   onUpdateDrinksMenu: (menu: MenuItem[]) => void;
+  basicIngredients: BasicIngredientConfig[];
+  extrasConfig: ExtraConfig[];
+  onUpdateBasicIngredients: (ingredients: BasicIngredientConfig[]) => void;
+  onUpdateExtrasConfig: (extras: ExtraConfig[]) => void;
+  orders: SavedOrder[];
+  onConfirmOrder: (orderId: string) => void;
+  onUnconfirmOrder: (orderId: string) => void;
+  onMarkAsDelivered: (orderId: string) => void;
+  onDeleteOrder: (orderId: string) => void;
+  onClearAllOrders: () => void;
 }
 
 const DEFAULT_BASIC_INGREDIENTS: BasicIngredientConfig[] = [
@@ -99,14 +66,23 @@ export default function AdminPanel({
   hotDogsMenu,
   drinksMenu,
   onUpdateHotDogsMenu,
-  onUpdateDrinksMenu
+  onUpdateDrinksMenu,
+  basicIngredients,
+  extrasConfig,
+  onUpdateBasicIngredients,
+  onUpdateExtrasConfig,
+  orders,
+  onConfirmOrder,
+  onUnconfirmOrder,
+  onMarkAsDelivered,
+  onDeleteOrder,
+  onClearAllOrders
 }: AdminPanelProps) {
   const [password, setPassword] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     return sessionStorage.getItem('divino_admin_auth') === 'true';
   });
   const [error, setError] = useState('');
-  const [orders, setOrders] = useState<SavedOrder[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'pedidos' | 'cardapio' | 'estatisticas' | 'config'>('pedidos');
   const [ordersFilter, setOrdersFilter] = useState<'pending' | 'confirmed' | 'delivered'>('pending');
 
@@ -126,26 +102,6 @@ export default function AdminPanel({
   const [editingBasicId, setEditingBasicId] = useState<string | null>(null);
   const [editBasicName, setEditBasicName] = useState('');
   const [editBasicDescription, setEditBasicDescription] = useState('');
-
-  // Load extras from localStorage
-  const [extrasConfig, setExtrasConfig] = useState<ExtraConfig[]>(() => {
-    try {
-      const stored = localStorage.getItem('divino_lanches_extras_config');
-      return stored ? JSON.parse(stored) : DEFAULT_EXTRAS;
-    } catch {
-      return DEFAULT_EXTRAS;
-    }
-  });
-
-  // Load basic ingredients from localStorage
-  const [basicIngredients, setBasicIngredients] = useState<BasicIngredientConfig[]>(() => {
-    try {
-      const stored = localStorage.getItem('divino_lanches_basic_ingredients_config');
-      return stored ? JSON.parse(stored) : DEFAULT_BASIC_INGREDIENTS;
-    } catch {
-      return DEFAULT_BASIC_INGREDIENTS;
-    }
-  });
 
   const startEditing = (item: MenuItem) => {
     setEditingItemId(item.id);
@@ -206,8 +162,7 @@ export default function AdminPanel({
     const updated = extrasConfig.map(item =>
       item.id === id ? { ...item, name: editExtraName.trim(), price: priceNum, description: editExtraDescription.trim() } : item
     );
-    setExtrasConfig(updated);
-    localStorage.setItem('divino_lanches_extras_config', JSON.stringify(updated));
+    onUpdateExtrasConfig(updated);
     setEditingExtraId(null);
   };
 
@@ -220,8 +175,7 @@ export default function AdminPanel({
     const updated = basicIngredients.map(item =>
       item.id === id ? { ...item, name: editBasicName.trim(), description: editBasicDescription.trim() } : item
     );
-    setBasicIngredients(updated);
-    localStorage.setItem('divino_lanches_basic_ingredients_config', JSON.stringify(updated));
+    onUpdateBasicIngredients(updated);
     setEditingBasicId(null);
   };
 
@@ -233,35 +187,6 @@ export default function AdminPanel({
       return `Misto (${p1} & ${p2})`;
     }
     return hotDogsMenu.find(h => h.id === type)?.name || type;
-  };
-
-  // Load orders from localStorage and listen to real-time storage updates
-  useEffect(() => {
-    if (isLoggedIn) {
-      loadOrders();
-
-      const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'divino_lanches_orders') {
-          loadOrders();
-        }
-      };
-
-      window.addEventListener('storage', handleStorageChange);
-      return () => {
-        window.removeEventListener('storage', handleStorageChange);
-      };
-    }
-  }, [isLoggedIn]);
-
-  const loadOrders = () => {
-    try {
-      const stored = localStorage.getItem('divino_lanches_orders');
-      if (stored) {
-        setOrders(JSON.parse(stored));
-      }
-    } catch (e) {
-      console.error('Erro ao carregar pedidos no painel Admin', e);
-    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -290,41 +215,26 @@ export default function AdminPanel({
   };
 
   const confirmOrder = (orderId: string) => {
-    const updated = orders.map(o => 
-      o.id === orderId ? { ...o, confirmed: true } : o
-    );
-    setOrders(updated);
-    localStorage.setItem('divino_lanches_orders', JSON.stringify(updated));
+    onConfirmOrder(orderId);
   };
 
   const unconfirmOrder = (orderId: string) => {
-    const updated = orders.map(o => 
-      o.id === orderId ? { ...o, confirmed: false, delivered: false } : o
-    );
-    setOrders(updated);
-    localStorage.setItem('divino_lanches_orders', JSON.stringify(updated));
+    onUnconfirmOrder(orderId);
   };
 
   const markAsDelivered = (orderId: string) => {
-    const updated = orders.map(o => 
-      o.id === orderId ? { ...o, delivered: true } : o
-    );
-    setOrders(updated);
-    localStorage.setItem('divino_lanches_orders', JSON.stringify(updated));
+    onMarkAsDelivered(orderId);
   };
 
   const deleteOrder = (orderId: string) => {
     if (window.confirm('Deseja realmente excluir este pedido do histórico?')) {
-      const updated = orders.filter(o => o.id !== orderId);
-      setOrders(updated);
-      localStorage.setItem('divino_lanches_orders', JSON.stringify(updated));
+      onDeleteOrder(orderId);
     }
   };
 
   const clearAllOrders = () => {
     if (window.confirm('ATENÇÃO: Isso apagará TODO o histórico de pedidos permanentemente. Continuar?')) {
-      setOrders([]);
-      localStorage.removeItem('divino_lanches_orders');
+      onClearAllOrders();
     }
   };
 

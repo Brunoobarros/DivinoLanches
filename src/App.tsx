@@ -3,8 +3,16 @@ import Header from './components/Header';
 import HotDogCustomizer from './components/HotDogCustomizer';
 import AdminPanel from './components/AdminPanel';
 import OrderSummaryAndCheckout from './components/OrderSummaryAndCheckout';
-import { Cart, HotDogItem, DrinkCartItem, MenuItem } from './types';
-import { DRINKS_MENU, PROTEIN_LABELS } from './constants';
+import { 
+  Cart, 
+  HotDogItem, 
+  DrinkCartItem, 
+  MenuItem,
+  SavedOrder,
+  BasicIngredientConfig,
+  ExtraConfig
+} from './types';
+import { PROTEIN_LABELS } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Crown, 
@@ -18,6 +26,17 @@ import {
   Sparkles,
   Info
 } from 'lucide-react';
+import { 
+  collection, 
+  doc, 
+  onSnapshot, 
+  setDoc, 
+  getDoc, 
+  writeBatch,
+  updateDoc,
+  deleteDoc
+} from 'firebase/firestore';
+import { db } from './firebase';
 
 const LOCAL_STORAGE_KEY = 'divino_lanches_cart';
 
@@ -26,44 +45,210 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'montar' | 'admin' | 'carrinho'>('montar');
 
   // Dynamic cardápio (menu) state
-  const [hotDogsMenu, setHotDogsMenu] = useState<MenuItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('divino_lanches_menu_hotdogs');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.error('Erro ao carregar menu de hotdogs', e);
-    }
-    return [
-      { id: 'boi', name: 'Salsicha de Boi', price: 15.0, description: 'Salsicha tradicional bovina grelhada.' },
-      { id: 'frango', name: 'Frango Desfiado', price: 16.0, description: 'Frango desfiado cremoso e temperado.' },
-      { id: 'calabresa', name: 'Calabresa Defumada', price: 16.0, description: 'Calabresa grelhada com cebola na chapa.' }
-    ];
-  });
+  const [hotDogsMenu, setHotDogsMenu] = useState<MenuItem[]>([]);
+  const [drinksMenu, setDrinksMenu] = useState<MenuItem[]>([]);
+  const [basicIngredients, setBasicIngredients] = useState<BasicIngredientConfig[]>([]);
+  const [extrasConfig, setExtrasConfig] = useState<ExtraConfig[]>([]);
+  const [disabledItems, setDisabledItems] = useState<string[]>([]);
+  const [orders, setOrders] = useState<SavedOrder[]>([]);
 
-  const [drinksMenu, setDrinksMenu] = useState<MenuItem[]>(() => {
-    try {
-      const stored = localStorage.getItem('divino_lanches_menu_drinks');
-      if (stored) return JSON.parse(stored);
-    } catch (e) {
-      console.error('Erro ao carregar menu de bebidas', e);
-    }
-    return [
-      { id: 'coca_lata', name: 'Coca-Cola (Lata)', price: 6.00, description: 'Lata de 350ml bem gelada' },
-      { id: 'guarana_lata', name: 'Guaraná Antarctica (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
-      { id: 'fanta_lata', name: 'Fanta Laranja (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
-      { id: 'suco_laranja', name: 'Suco de Laranja (300ml)', price: 8.00, description: 'Suco natural e refrescante' },
-      { id: 'agua', name: 'Água Mineral Sem Gás (500ml)', price: 4.00, description: 'Água mineral fresca' }
-    ];
-  });
+  // Check and Initialize Default Data on Firebase
+  useEffect(() => {
+    const checkAndInitialize = async () => {
+      try {
+        const statusDocRef = doc(db, 'config', 'status');
+        const statusSnap = await getDoc(statusDocRef);
+        if (!statusSnap.exists() || !statusSnap.data()?.initialized) {
+          const batch = writeBatch(db);
+          
+          // status
+          batch.set(statusDocRef, { initialized: true });
+          
+          // default hotdogs
+          const defaultHotdogs = [
+            { id: 'boi', name: 'Salsicha de Boi', price: 15.0, description: 'Salsicha tradicional bovina grelhada.' },
+            { id: 'frango', name: 'Frango Desfiado', price: 16.0, description: 'Frango desfiado cremoso e temperado.' },
+            { id: 'calabresa', name: 'Calabresa Defumada', price: 16.0, description: 'Calabresa grelhada com cebola na chapa.' }
+          ];
+          defaultHotdogs.forEach(item => {
+            batch.set(doc(db, 'menu_hotdogs', item.id), { name: item.name, price: item.price, description: item.description });
+          });
+          
+          // default drinks
+          const defaultDrinks = [
+            { id: 'coca_lata', name: 'Coca-Cola (Lata)', price: 6.00, description: 'Lata de 350ml bem gelada' },
+            { id: 'guarana_lata', name: 'Guaraná Antarctica (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
+            { id: 'fanta_lata', name: 'Fanta Laranja (Lata)', price: 5.50, description: 'Lata de 350ml bem gelada' },
+            { id: 'suco_laranja', name: 'Suco de Laranja (300ml)', price: 8.00, description: 'Suco natural e refrescante' },
+            { id: 'agua', name: 'Água Mineral Sem Gás (500ml)', price: 4.00, description: 'Água mineral fresca' }
+          ];
+          defaultDrinks.forEach(item => {
+            batch.set(doc(db, 'menu_drinks', item.id), { name: item.name, price: item.price, description: item.description });
+          });
+          
+          // default basic ingredients
+          const defaultBasic = [
+            { id: 'milhoErvilha', name: 'Milho & Ervilha Dupla', description: 'Docinho e crocante' },
+            { id: 'vinagrete', name: 'Vinagrete Picadinho', description: 'Tomate fresco e cebola' },
+            { id: 'cenoura', name: 'Cenoura Raladinha', description: 'Fina e nutritiva' },
+            { id: 'batataPalha', name: 'Batata Palha Crocante', description: 'Sempre fresquinha' }
+          ];
+          defaultBasic.forEach(item => {
+            batch.set(doc(db, 'basic_ingredients', item.id), { name: item.name, description: item.description });
+          });
+          
+          // default extras
+          const defaultExtras = [
+            { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' },
+            { id: 'molhoEspecial', name: 'Molho Especial', price: 1.50, description: 'Receita secreta da casa' },
+            { id: 'molhoVerde', name: 'Molho Verde', price: 1.50, description: 'Sabor marcante' },
+            { id: 'molhoBarbecue', name: 'Molho Barbecue', price: 1.50, description: 'Defumado e adocicado' }
+          ];
+          defaultExtras.forEach(item => {
+            batch.set(doc(db, 'extras_config', item.id), { name: item.name, price: item.price, description: item.description });
+          });
+          
+          // default disabled items
+          batch.set(doc(db, 'config', 'disabled_items'), { items: [] });
+          
+          await batch.commit();
+          console.log('Firebase initialized with default data.');
+        }
+      } catch (e) {
+        console.error('Error checking or initializing Firebase data', e);
+      }
+    };
+    checkAndInitialize();
+  }, []);
 
-  const handleUpdateHotDogsMenu = (newMenu: MenuItem[]) => {
-    setHotDogsMenu(newMenu);
-    localStorage.setItem('divino_lanches_menu_hotdogs', JSON.stringify(newMenu));
+  // Subscribe to real-time updates from Firestore
+  useEffect(() => {
+    const unsubHotdogs = onSnapshot(collection(db, 'menu_hotdogs'), (snapshot) => {
+      const items: MenuItem[] = [];
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, ...doc.data() } as MenuItem);
+      });
+      const orderMap = { boi: 1, frango: 2, calabresa: 3 };
+      items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
+      if (items.length > 0) setHotDogsMenu(items);
+    });
+
+    const unsubDrinks = onSnapshot(collection(db, 'menu_drinks'), (snapshot) => {
+      const items: MenuItem[] = [];
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, ...doc.data() } as MenuItem);
+      });
+      const orderMap = { coca_lata: 1, guarana_lata: 2, fanta_lata: 3, suco_laranja: 4, agua: 5 };
+      items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
+      if (items.length > 0) setDrinksMenu(items);
+    });
+
+    const unsubBasic = onSnapshot(collection(db, 'basic_ingredients'), (snapshot) => {
+      const items: BasicIngredientConfig[] = [];
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, ...doc.data() } as BasicIngredientConfig);
+      });
+      const orderMap = { milhoErvilha: 1, vinagrete: 2, cenoura: 3, batataPalha: 4 };
+      items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
+      if (items.length > 0) setBasicIngredients(items);
+    });
+
+    const unsubExtras = onSnapshot(collection(db, 'extras_config'), (snapshot) => {
+      const items: ExtraConfig[] = [];
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, ...doc.data() } as ExtraConfig);
+      });
+      const orderMap = { queijo: 1, molhoEspecial: 2, molhoVerde: 3, molhoBarbecue: 4 };
+      items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
+      if (items.length > 0) setExtrasConfig(items);
+    });
+
+    const unsubDisabled = onSnapshot(doc(db, 'config', 'disabled_items'), (docSnap) => {
+      if (docSnap.exists()) {
+        setDisabledItems(docSnap.data().items || []);
+      }
+    });
+
+    const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
+      const items: SavedOrder[] = [];
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, ...doc.data() } as SavedOrder);
+      });
+      items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setOrders(items);
+    });
+
+    return () => {
+      unsubHotdogs();
+      unsubDrinks();
+      unsubBasic();
+      unsubExtras();
+      unsubDisabled();
+      unsubOrders();
+    };
+  }, []);
+
+  const handleUpdateHotDogsMenu = async (newMenu: MenuItem[]) => {
+    try {
+      const batch = writeBatch(db);
+      newMenu.forEach(item => {
+        batch.set(doc(db, 'menu_hotdogs', item.id), {
+          name: item.name,
+          price: item.price,
+          description: item.description
+        });
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Erro ao atualizar cardápio de hotdogs', e);
+    }
   };
 
-  const handleUpdateDrinksMenu = (newMenu: MenuItem[]) => {
-    setDrinksMenu(newMenu);
-    localStorage.setItem('divino_lanches_menu_drinks', JSON.stringify(newMenu));
+  const handleUpdateDrinksMenu = async (newMenu: MenuItem[]) => {
+    try {
+      const batch = writeBatch(db);
+      newMenu.forEach(item => {
+        batch.set(doc(db, 'menu_drinks', item.id), {
+          name: item.name,
+          price: item.price,
+          description: item.description
+        });
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Erro ao atualizar cardápio de bebidas', e);
+    }
+  };
+
+  const handleUpdateBasicIngredients = async (newBasic: BasicIngredientConfig[]) => {
+    try {
+      const batch = writeBatch(db);
+      newBasic.forEach(item => {
+        batch.set(doc(db, 'basic_ingredients', item.id), {
+          name: item.name,
+          description: item.description
+        });
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Erro ao atualizar ingredientes básicos', e);
+    }
+  };
+
+  const handleUpdateExtrasConfig = async (newExtras: ExtraConfig[]) => {
+    try {
+      const batch = writeBatch(db);
+      newExtras.forEach(item => {
+        batch.set(doc(db, 'extras_config', item.id), {
+          name: item.name,
+          price: item.price,
+          description: item.description
+        });
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Erro ao atualizar adicionais/extras', e);
+    }
   };
 
   // Dynamic labels mapping for components
@@ -92,25 +277,40 @@ export default function App() {
     }
   });
 
-  // Disabled items (out of stock) state
-  const [disabledItems, setDisabledItems] = useState<string[]>(() => {
+  const handleToggleDisabledItem = async (itemKey: string) => {
     try {
-      const stored = localStorage.getItem('divino_lanches_disabled_items');
-      return stored ? JSON.parse(stored) : [];
+      const updated = disabledItems.includes(itemKey)
+        ? disabledItems.filter((k) => k !== itemKey)
+        : [...disabledItems, itemKey];
+      await setDoc(doc(db, 'config', 'disabled_items'), { items: updated });
     } catch (e) {
-      console.error('Erro ao carregar itens desativados', e);
-      return [];
+      console.error('Erro ao alternar disponibilidade do item', e);
     }
-  });
+  };
 
-  const handleToggleDisabledItem = (itemKey: string) => {
-    setDisabledItems((prev) => {
-      const updated = prev.includes(itemKey)
-        ? prev.filter((k) => k !== itemKey)
-        : [...prev, itemKey];
-      localStorage.setItem('divino_lanches_disabled_items', JSON.stringify(updated));
-      return updated;
+  // Order Handlers
+  const handleConfirmOrder = async (orderId: string) => {
+    await updateDoc(doc(db, 'orders', orderId), { confirmed: true });
+  };
+
+  const handleUnconfirmOrder = async (orderId: string) => {
+    await updateDoc(doc(db, 'orders', orderId), { confirmed: false, delivered: false });
+  };
+
+  const handleMarkAsDelivered = async (orderId: string) => {
+    await updateDoc(doc(db, 'orders', orderId), { delivered: true });
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    await deleteDoc(doc(db, 'orders', orderId));
+  };
+
+  const handleClearAllOrders = async () => {
+    const batch = writeBatch(db);
+    orders.forEach(o => {
+      batch.delete(doc(db, 'orders', o.id));
     });
+    await batch.commit();
   };
 
   // Master Cart State
@@ -293,6 +493,16 @@ export default function App() {
                       drinksMenu={drinksMenu}
                       onUpdateHotDogsMenu={handleUpdateHotDogsMenu}
                       onUpdateDrinksMenu={handleUpdateDrinksMenu}
+                      basicIngredients={basicIngredients}
+                      extrasConfig={extrasConfig}
+                      onUpdateBasicIngredients={handleUpdateBasicIngredients}
+                      onUpdateExtrasConfig={handleUpdateExtrasConfig}
+                      orders={orders}
+                      onConfirmOrder={handleConfirmOrder}
+                      onUnconfirmOrder={handleUnconfirmOrder}
+                      onMarkAsDelivered={handleMarkAsDelivered}
+                      onDeleteOrder={handleDeleteOrder}
+                      onClearAllOrders={handleClearAllOrders}
                     />
                   </motion.div>
                 )}
@@ -386,6 +596,16 @@ export default function App() {
                   drinksMenu={drinksMenu}
                   onUpdateHotDogsMenu={handleUpdateHotDogsMenu}
                   onUpdateDrinksMenu={handleUpdateDrinksMenu}
+                  basicIngredients={basicIngredients}
+                  extrasConfig={extrasConfig}
+                  onUpdateBasicIngredients={handleUpdateBasicIngredients}
+                  onUpdateExtrasConfig={handleUpdateExtrasConfig}
+                  orders={orders}
+                  onConfirmOrder={handleConfirmOrder}
+                  onUnconfirmOrder={handleUnconfirmOrder}
+                  onMarkAsDelivered={handleMarkAsDelivered}
+                  onDeleteOrder={handleDeleteOrder}
+                  onClearAllOrders={handleClearAllOrders}
                 />
               )}
               {activeTab === 'carrinho' && (

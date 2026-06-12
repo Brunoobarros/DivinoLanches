@@ -72,3 +72,47 @@ export interface MenuItem {
   description: string;
 }
 
+export interface SavedOrder {
+  id: string;
+  customerName: string;
+  customerPhone: string;
+  orderType: 'retirada' | 'entrega';
+  street?: string;
+  num?: string;
+  neighborhood?: string;
+  reference?: string;
+  paymentMethod: 'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro';
+  changeFor?: string;
+  hotDogs: Array<{
+    type: string;
+    quantity: number;
+    price: number;
+    details: string;
+  }>;
+  drinks: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
+  subtotal: number;
+  deliveryFee: number;
+  grandTotal: number;
+  timestamp: string;
+  confirmed?: boolean;
+  delivered?: boolean;
+}
+
+export interface BasicIngredientConfig {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface ExtraConfig {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+}
+
+

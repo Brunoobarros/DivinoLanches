@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder } from '../types';
 import { NEIGHBORHOODS, WHATSAPP_NUMBER } from '../constants';
 import { ShoppingCart, Trash2, MapPin, CheckCircle, Smartphone, Send, DollarSign, Copy, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface OrderSummaryAndCheckoutProps {
   cart: Cart;
@@ -169,7 +171,7 @@ export default function OrderSummaryAndCheckout({
     return text;
   };
 
-  const handleSendOrder = (e: React.FormEvent) => {
+  const handleSendOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError('');
 
@@ -207,13 +209,10 @@ export default function OrderSummaryAndCheckout({
     const encoded = encodeURIComponent(message);
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
 
-    // Salva o pedido no histórico local para exibição no painel Admin
+    // Salva o pedido no Firestore e no histórico local
     try {
-      // Generate sequential ID: PED_001, PED_002, etc.
-      const prevOrdersStr = localStorage.getItem('divino_lanches_orders');
-      const prevOrders = prevOrdersStr ? JSON.parse(prevOrdersStr) : [];
-      const nextNumber = prevOrders.length + 1;
-      const orderId = `PED_${String(nextNumber).padStart(3, '0')}`;
+      // Generate unique ID using last 4 digits of timestamp + random 2-digit number (e.g. PED-5921-12)
+      const orderId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
       
       const savedOrder = {
         id: orderId,
@@ -241,13 +240,27 @@ export default function OrderSummaryAndCheckout({
         deliveryFee,
         grandTotal,
         timestamp: new Date().toISOString(),
-        confirmed: false
+        confirmed: false,
+        delivered: false
       };
       
+      // Save to Firestore
+      await setDoc(doc(db, 'orders', orderId), savedOrder);
+
+      // Fallback: Save to LocalStorage
+      const prevOrdersStr = localStorage.getItem('divino_lanches_orders');
+      const prevOrders = prevOrdersStr ? JSON.parse(prevOrdersStr) : [];
       prevOrders.unshift(savedOrder);
       localStorage.setItem('divino_lanches_orders', JSON.stringify(prevOrders));
     } catch (e) {
-      console.error('Erro ao salvar pedido no histórico', e);
+      console.error('Erro ao salvar pedido', e);
+    }
+
+    // Redireciona para o WhatsApp
+    try {
+      window.open(whatsappUrl, '_blank');
+    } catch (e) {
+      console.error('Erro ao abrir o WhatsApp', e);
     }
 
     // Mark as sent
