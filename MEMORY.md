@@ -84,3 +84,21 @@ npm run dev      # Iniciar servidor de desenvolvimento (porta 3000)
 npm run build    # Build de produção
 npm run preview  # Preview do build
 npm run lint     # Verificar erros TypeScript
+```
+
+---
+
+## 🛡️ Segurança & Integrações
+
+### Chaves e Credenciais
+* As chaves secretas (como `MERCADO_PAGO_ACCESS_TOKEN`) ficam no arquivo `.env` local e **nunca** são expostas ao frontend.
+* As chaves do Firebase e a chave pública do Mercado Pago usam o prefixo `VITE_` e são expostas no build do frontend de forma pública.
+
+### Checkout Transparente & Webhooks
+* **Pix Automático & Cartão:** Aprovados de forma transparente via API do Mercado Pago diretamente no site.
+* **Webhook (`/api/mercadopago-webhook.js`):** Escuta de forma assíncrona as notificações do Mercado Pago e atualiza o Firestore para `paid: true` e `confirmed: true` assim que detecta pagamentos aprovados.
+
+### Alertas de Segurança (Débitos Técnicos)
+1. **Autenticação Admin:** A validação da senha `'admin'` é feita no frontend ([AdminPanel.tsx](file:///C:/Users/Ellen%2520Lisboa/Videos/DivinoLanches/src/components/AdminPanel.tsx)). Em produção, recomenda-se migrar para validação no backend ou Firebase Auth.
+2. **Firestore Rules:** Configure as regras de segurança do Firestore para evitar que usuários mal-intencionados façam escritas não autorizadas ou manipulação de preços direto pelo console do navegador.
+3. **Validação de Preço no Servidor:** O cálculo de valores das compras deve ser migrado futuramente para o backend, a fim de evitar que valores de requisição alterados no frontend sejam faturados com preços incorretos.

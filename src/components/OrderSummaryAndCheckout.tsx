@@ -219,7 +219,7 @@ export default function OrderSummaryAndCheckout({
                 return;
               }
               if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-                setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex: 82 99603-5476).');
+                setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex:82 99671-4559).');
                 reject();
                 return;
               }
@@ -567,7 +567,7 @@ export default function OrderSummaryAndCheckout({
       return;
     }
     if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-      setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex: 82 99603-5476).');
+      setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex:82 99671-4559).');
       return;
     }
 

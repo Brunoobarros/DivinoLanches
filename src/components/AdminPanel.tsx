@@ -1271,7 +1271,7 @@ export default function AdminPanel({
                       type="text"
                       value={pixKey}
                       onChange={(e) => setPixKey(e.target.value)}
-                      placeholder="Ex: 82996035476 ou pix@divino.com"
+                      placeholder=""
                       className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:border-brand-red text-slate-800 font-bold"
                     />
                   </div>
@@ -1281,7 +1281,7 @@ export default function AdminPanel({
                       type="text"
                       value={pixName}
                       onChange={(e) => setPixName(e.target.value)}
-                      placeholder="Ex: Bruno Silva Barros"
+                      placeholder=""
                       className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:border-brand-red text-slate-800 font-bold"
                     />
                   </div>
@@ -1291,7 +1291,7 @@ export default function AdminPanel({
                       type="text"
                       value={pixCity}
                       onChange={(e) => setPixCity(e.target.value)}
-                      placeholder="Ex: Maceio"
+                      placeholder=""
                       className="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:border-brand-red text-slate-800 font-bold"
                     />
                   </div>
