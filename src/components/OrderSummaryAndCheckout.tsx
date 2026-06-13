@@ -148,217 +148,217 @@ export default function OrderSummaryAndCheckout({
 
   const cardBrickInstanceRef = useRef<any>(null);
 
-  useEffect(() => {
-    // If not card payment, unmount if it exists and exit
-    if (paymentMethod !== 'cartao_credito' && paymentMethod !== 'cartao_debito') {
-      if (cardBrickInstanceRef.current) {
-        cardBrickInstanceRef.current.unmount();
-        cardBrickInstanceRef.current = null;
+  const cleanupCardBrick = async () => {
+    if (cardBrickInstanceRef.current) {
+      try {
+        await cardBrickInstanceRef.current.unmount();
+      } catch (e) {
+        console.warn('Error unmounting card brick:', e);
       }
+      cardBrickInstanceRef.current = null;
+    }
+  };
+
+  const initCardBrick = async (container: HTMLDivElement) => {
+    // Clean up previous instance if any
+    await cleanupCardBrick();
+
+    if (!(window as any).MercadoPago) {
+      setValidationError('Erro: O SDK do Mercado Pago não foi carregado. Verifique sua conexão ou bloqueador de anúncios.');
       return;
     }
 
-    // If card payment, initialize the brick
-    const initCardBrick = async () => {
-      const container = document.getElementById('cardPaymentBrick_container');
-      if (!container) return;
+    const publicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
+    if (!publicKey) {
+      setValidationError('Erro: Chave pública do Mercado Pago não configurada.');
+      return;
+    }
 
-      if (cardBrickInstanceRef.current) {
-        try {
-          await cardBrickInstanceRef.current.unmount();
-        } catch (e) {
-          console.warn('Error unmounting card brick:', e);
-        }
-        cardBrickInstanceRef.current = null;
-      }
+    try {
+      const mp = new (window as any).MercadoPago(publicKey, {
+        locale: 'pt-BR'
+      });
 
-      if (!(window as any).MercadoPago) {
-        console.error('SDK do Mercado Pago não carregado.');
-        return;
-      }
+      const bricksBuilder = mp.bricks();
+      const safeEmail = `cliente_${String(Date.now()).slice(-6)}@divinolanches.com.br`;
 
-      try {
-        const mp = new (window as any).MercadoPago(import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY, {
-          locale: 'pt-BR'
-        });
-
-        const bricksBuilder = mp.bricks();
-        const safeEmail = `cliente_${String(Date.now()).slice(-6)}@divinolanches.com.br`;
-
-        const settings = {
-          initialization: {
-            amount: grandTotal,
-            payer: {
-              email: safeEmail
+      const settings = {
+        initialization: {
+          amount: grandTotal,
+          payer: {
+            email: safeEmail
+          }
+        },
+        customization: {
+          visual: {
+            style: {
+              theme: 'flat'
             }
           },
-          customization: {
-            visual: {
-              style: {
-                theme: 'flat'
+          paymentMethods: {
+            minInstallments: 1,
+            maxInstallments: 12
+          }
+        },
+        callbacks: {
+          onReady: () => {
+            console.log('Card Payment Brick ready');
+          },
+          onSubmit: (cardFormData: any) => {
+            return new Promise<void>(async (resolve, reject) => {
+              const current = formDataRef.current;
+              if (!current.customerName.trim()) {
+                setValidationError('Por favor, informe seu nome!');
+                reject();
+                return;
               }
-            },
-            paymentMethods: {
-              minInstallments: 1,
-              maxInstallments: 12
-            }
-          },
-          callbacks: {
-            onReady: () => {
-              console.log('Card Payment Brick ready');
-            },
-            onSubmit: (cardFormData: any) => {
-              return new Promise<void>(async (resolve, reject) => {
-                const current = formDataRef.current;
-                if (!current.customerName.trim()) {
-                  setValidationError('Por favor, informe seu nome!');
+              const phoneDigits = current.customerPhone.replace(/\D/g, '');
+              if (!current.customerPhone.trim()) {
+                setValidationError('Por favor, informe seu celular/WhatsApp!');
+                reject();
+                return;
+              }
+              if (phoneDigits.length < 10 || phoneDigits.length > 11) {
+                setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex: 82 99603-5476).');
+                reject();
+                return;
+              }
+              if (current.orderType === 'entrega') {
+                if (!current.street.trim()) {
+                  setValidationError('Por favor, preencha o nome da rua para a entrega!');
                   reject();
                   return;
                 }
-                const phoneDigits = current.customerPhone.replace(/\D/g, '');
-                if (!current.customerPhone.trim()) {
-                  setValidationError('Por favor, informe seu celular/WhatsApp!');
+                if (!current.num.trim()) {
+                  setValidationError('Por favor, informe o número da casa/apto!');
                   reject();
                   return;
                 }
-                if (phoneDigits.length < 10 || phoneDigits.length > 11) {
-                  setValidationError('Telefone inválido! Digite um número de telefone válido com DDD (ex: 82 99603-5476).');
-                  reject();
-                  return;
+              }
+
+              setIsProcessing(true);
+              setValidationError('');
+
+              const orderId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
+
+              try {
+                const response = await fetch('/api/process-card-payment', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    cardFormData,
+                    orderId,
+                    customerName: current.customerName,
+                    customerPhone: current.customerPhone
+                  })
+                });
+
+                if (!response.ok) {
+                  throw new Error('Falha ao processar pagamento com cartão.');
                 }
-                if (current.orderType === 'entrega') {
-                  if (!current.street.trim()) {
-                    setValidationError('Por favor, preencha o nome da rua para a entrega!');
-                    reject();
-                    return;
-                  }
-                  if (!current.num.trim()) {
-                    setValidationError('Por favor, informe o número da casa/apto!');
-                    reject();
-                    return;
-                  }
-                }
 
-                setIsProcessing(true);
-                setValidationError('');
+                const paymentResult = await response.json();
 
-                const orderId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
+                if (paymentResult.status === 'approved') {
+                  const savedOrder = {
+                    id: orderId,
+                    customerName: current.customerName,
+                    customerPhone: current.customerPhone,
+                    orderType: current.orderType,
+                    street: current.street,
+                    num: current.num,
+                    neighborhood: current.neighborhood,
+                    reference: current.reference,
+                    paymentMethod: current.paymentMethod,
+                    changeFor: current.changeFor,
+                    hotDogs: current.cart.hotDogs.map((d: any) => ({
+                      type: d.type,
+                      quantity: d.quantity,
+                      price: d.price,
+                      details: formatHotDogIngredients(d)
+                    })),
+                    drinks: current.cart.drinks.map((dr: any) => ({
+                      name: dr.name,
+                      quantity: dr.quantity,
+                      price: dr.price
+                    })),
+                    subtotal: current.subtotal,
+                    deliveryFee: current.deliveryFee,
+                    grandTotal: current.grandTotal,
+                    timestamp: new Date().toISOString(),
+                    confirmed: true,
+                    delivered: false,
+                    paid: true
+                  };
 
-                try {
-                  const response = await fetch('/api/process-card-payment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      cardFormData,
-                      orderId,
-                      customerName: current.customerName,
-                      customerPhone: current.customerPhone
-                    })
-                  });
+                  const orderRef = doc(db, 'orders', orderId);
+                  await setDoc(orderRef, savedOrder);
 
-                  if (!response.ok) {
-                    throw new Error('Falha ao processar pagamento com cartão.');
-                  }
+                  const whatsappMsg = generateOrderMessage(orderId);
+                  const payLabels = {
+                    pix: 'Pix ⚡',
+                    cartao_credito: 'Cartão de Crédito 💳 (PAGO ONLINE - APROVADO)',
+                    cartao_debito: 'Cartão de Débito 💳 (PAGO ONLINE - APROVADO)',
+                    dinheiro: 'Dinheiro 💵',
+                  };
+                  const customMessage = whatsappMsg.replace(
+                    /💳 \*Forma de Pagamento\*: .*/,
+                    `💳 *Forma de Pagamento:* ${payLabels[current.paymentMethod as keyof typeof payLabels]}`
+                  );
+                  const encoded = encodeURIComponent(customMessage);
+                  const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
 
-                  const paymentResult = await response.json();
-
-                  if (paymentResult.status === 'approved') {
-                    const savedOrder = {
-                      id: orderId,
-                      customerName: current.customerName,
-                      customerPhone: current.customerPhone,
-                      orderType: current.orderType,
-                      street: current.street,
-                      num: current.num,
-                      neighborhood: current.neighborhood,
-                      reference: current.reference,
-                      paymentMethod: current.paymentMethod,
-                      changeFor: current.changeFor,
-                      hotDogs: current.cart.hotDogs.map((d: any) => ({
-                        type: d.type,
-                        quantity: d.quantity,
-                        price: d.price,
-                        details: formatHotDogIngredients(d)
-                      })),
-                      drinks: current.cart.drinks.map((dr: any) => ({
-                        name: dr.name,
-                        quantity: dr.quantity,
-                        price: dr.price
-                      })),
-                      subtotal: current.subtotal,
-                      deliveryFee: current.deliveryFee,
-                      grandTotal: current.grandTotal,
-                      timestamp: new Date().toISOString(),
-                      confirmed: true,
-                      delivered: false,
-                      paid: true
-                    };
-
-                    const orderRef = doc(db, 'orders', orderId);
-                    await setDoc(orderRef, savedOrder);
-
-                    const whatsappMsg = generateOrderMessage(orderId);
-                    const payLabels = {
-                      pix: 'Pix ⚡',
-                      cartao_credito: 'Cartão de Crédito 💳 (PAGO ONLINE - APROVADO)',
-                      cartao_debito: 'Cartão de Débito 💳 (PAGO ONLINE - APROVADO)',
-                      dinheiro: 'Dinheiro 💵',
-                    };
-                    const customMessage = whatsappMsg.replace(
-                      /💳 \*Forma de Pagamento\*: .*/,
-                      `💳 *Forma de Pagamento:* ${payLabels[current.paymentMethod as keyof typeof payLabels]}`
-                    );
-                    const encoded = encodeURIComponent(customMessage);
-                    const whatsappUrl = `https://api.whatsapp.com/send?phone=${WHATSAPP_NUMBER}&text=${encoded}`;
-
-                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    if (isMobile) {
-                      window.location.href = whatsappUrl;
-                    } else {
-                      window.open(whatsappUrl, '_blank');
-                    }
-
-                    onClearCart();
-                    setOrderSent(true);
-                    resolve();
+                  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                  if (isMobile) {
+                    window.location.href = whatsappUrl;
                   } else {
-                    const statusMessages: Record<string, string> = {
-                      rejected: 'Pagamento rejeitado. Verifique os dados ou saldo do cartão.',
-                      in_process: 'Pagamento em análise. O pedido foi registrado, mas o pagamento está pendente.',
-                      cancelled: 'Pagamento cancelado pelo emissor do cartão.'
-                    };
-                    const msg = statusMessages[paymentResult.status] || `Pagamento com status: ${paymentResult.status} (${paymentResult.statusDetail})`;
-                    setValidationError(msg);
-                    setIsProcessing(false);
-                    reject();
+                    window.open(whatsappUrl, '_blank');
                   }
-                } catch (err: any) {
-                  console.error(err);
-                  setValidationError('Erro ao processar o cartão com o servidor. Tente novamente ou escolha pagar na entrega.');
+
+                  onClearCart();
+                  setOrderSent(true);
+                  resolve();
+                } else {
+                  const statusMessages: Record<string, string> = {
+                    rejected: 'Pagamento rejeitado. Verifique os dados ou saldo do cartão.',
+                    in_process: 'Pagamento em análise. O pedido foi registrado, mas o pagamento está pendente.',
+                    cancelled: 'Pagamento cancelado pelo emissor do cartão.'
+                  };
+                  const msg = statusMessages[paymentResult.status] || `Pagamento com status: ${paymentResult.status} (${paymentResult.statusDetail})`;
+                  setValidationError(msg);
                   setIsProcessing(false);
                   reject();
                 }
-              });
-            },
-            onError: (error: any) => {
-              console.error('Card Brick Error:', error);
-              setValidationError('Erro na inicialização do formulário de cartão.');
-            }
+              } catch (err: any) {
+                console.error(err);
+                setValidationError('Erro ao processar o cartão com o servidor. Tente novamente ou escolha pagar na entrega.');
+                setIsProcessing(false);
+                reject();
+              }
+            });
+          },
+          onError: (error: any) => {
+            console.error('Card Brick Error:', error);
+            setValidationError('Erro na inicialização do formulário de cartão.');
           }
-        };
+        }
+      };
 
-        const brickController = await bricksBuilder.create('cardPayment', 'cardPaymentBrick_container', settings);
-        cardBrickInstanceRef.current = brickController;
-      } catch (e) {
-        console.error('Error rendering Card Brick:', e);
-      }
-    };
+      const brickController = await bricksBuilder.create('cardPayment', container, settings);
+      cardBrickInstanceRef.current = brickController;
+    } catch (e) {
+      console.error('Error rendering Card Brick:', e);
+      setValidationError('Não foi possível carregar o formulário do cartão. Verifique a conexão.');
+    }
+  };
 
-    const timer = setTimeout(initCardBrick, 100);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [paymentMethod, grandTotal, orderType]);
+  const cardBrickContainerRef = React.useCallback((node: HTMLDivElement | null) => {
+    if (node !== null) {
+      initCardBrick(node);
+    } else {
+      cleanupCardBrick();
+    }
+  }, [grandTotal, paymentMethod]);
 
   // Polling for Pix Payment Status
   useEffect(() => {
@@ -1120,7 +1120,7 @@ export default function OrderSummaryAndCheckout({
           {/* Submit Actions */}
           <div className="grid grid-cols-1 gap-2 pt-2">
             {paymentMethod === 'cartao_credito' || paymentMethod === 'cartao_debito' ? (
-              <div id="cardPaymentBrick_container" className="w-full mt-2" />
+              <div ref={cardBrickContainerRef} id="cardPaymentBrick_container" className="w-full mt-2" />
             ) : (
               <motion.button
                 whileTap={isProcessing ? undefined : { scale: 0.98 }}
