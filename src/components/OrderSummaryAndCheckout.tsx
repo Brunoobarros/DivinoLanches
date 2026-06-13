@@ -1203,6 +1203,12 @@ export default function OrderSummaryAndCheckout({
                 )}
               </div>
 
+              {/* Valor Total a Pagar */}
+              <div className="bg-amber-50/60 border border-amber-100/80 rounded-2xl py-2.5 px-5 text-center w-full max-w-[240px] shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Valor Total a Pagar</span>
+                <span className="text-xl font-black text-brand-red font-mono">R$ {grandTotal.toFixed(2)}</span>
+              </div>
+
               {/* Copy & Paste Code */}
               <div className="w-full space-y-1.5">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">
