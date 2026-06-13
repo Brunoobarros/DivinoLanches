@@ -86,6 +86,7 @@ export default function OrderSummaryAndCheckout({
   
   const [validationError, setValidationError] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCardBrickLoading, setIsCardBrickLoading] = useState(false);
 
   // Transparent Pix States
   const [showPixModal, setShowPixModal] = useState(false);
@@ -163,14 +164,18 @@ export default function OrderSummaryAndCheckout({
     // Clean up previous instance if any
     await cleanupCardBrick();
 
+    setIsCardBrickLoading(true);
+
     if (!(window as any).MercadoPago) {
       setValidationError('Erro: O SDK do Mercado Pago não foi carregado. Verifique sua conexão ou bloqueador de anúncios.');
+      setIsCardBrickLoading(false);
       return;
     }
 
     const publicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
     if (!publicKey) {
       setValidationError('Erro: Chave pública do Mercado Pago não configurada.');
+      setIsCardBrickLoading(false);
       return;
     }
 
@@ -203,6 +208,7 @@ export default function OrderSummaryAndCheckout({
         callbacks: {
           onReady: () => {
             console.log('Card Payment Brick ready');
+            setIsCardBrickLoading(false);
           },
           onSubmit: (cardFormData: any) => {
             return new Promise<void>(async (resolve, reject) => {
@@ -343,6 +349,7 @@ export default function OrderSummaryAndCheckout({
           onError: (error: any) => {
             console.error('Card Brick Error:', error);
             setValidationError('Erro na inicialização do formulário de cartão.');
+            setIsCardBrickLoading(false);
           }
         }
       };
@@ -352,6 +359,7 @@ export default function OrderSummaryAndCheckout({
     } catch (e) {
       console.error('Error rendering Card Brick:', e);
       setValidationError('Não foi possível carregar o formulário do cartão. Verifique a conexão.');
+      setIsCardBrickLoading(false);
     }
   };
 
@@ -1137,7 +1145,41 @@ export default function OrderSummaryAndCheckout({
           {/* Submit Actions */}
           <div className="grid grid-cols-1 gap-2 pt-2">
             {paymentMethod === 'cartao_credito' || paymentMethod === 'cartao_debito' ? (
-              <div ref={cardBrickContainerRef} id="cardPaymentBrick_container" className="w-full mt-2" />
+              <div className="relative w-full">
+                {isCardBrickLoading && (
+                  <div className="w-full py-6 flex flex-col gap-4 animate-pulse">
+                    {/* Card outline skeleton */}
+                    <div className="h-40 bg-slate-100/80 rounded-2xl w-full border border-slate-200/50 p-4 flex flex-col justify-between">
+                      <div className="flex justify-between items-center">
+                        <div className="h-8 w-12 bg-slate-200 rounded-md" />
+                        <div className="h-6 w-10 bg-slate-200 rounded-md" />
+                      </div>
+                      <div className="h-4 bg-slate-200 rounded-md w-3/4" />
+                      <div className="flex gap-4">
+                        <div className="h-4 bg-slate-200 rounded-md w-1/2" />
+                        <div className="h-4 bg-slate-200 rounded-md w-1/4" />
+                      </div>
+                    </div>
+                    {/* Fields placeholder skeletons */}
+                    <div className="space-y-3">
+                      <div className="h-10 bg-slate-100/70 rounded-xl w-full" />
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="h-10 bg-slate-100/70 rounded-xl" />
+                        <div className="h-10 bg-slate-100/70 rounded-xl" />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 justify-center text-xs text-slate-400 font-bold mt-2">
+                      <span className="w-4 h-4 border-2 border-slate-300 border-t-transparent rounded-full animate-spin" />
+                      <span>Carregando formulário seguro...</span>
+                    </div>
+                  </div>
+                )}
+                <div 
+                  ref={cardBrickContainerRef} 
+                  id="cardPaymentBrick_container" 
+                  className={`w-full mt-2 ${isCardBrickLoading ? 'absolute top-0 left-0 opacity-0 pointer-events-none' : ''}`} 
+                />
+              </div>
             ) : (
               <motion.button
                 whileTap={isProcessing ? undefined : { scale: 0.98 }}
