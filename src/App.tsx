@@ -73,6 +73,17 @@ export default function App() {
   const [disabledItems, setDisabledItems] = useState<string[]>([]);
   const [orders, setOrders] = useState<SavedOrder[]>([]);
 
+  // Check if admin mode is active (either in query parameter or saved in sessionStorage)
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [isAdminMode, setIsAdminMode] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('admin') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
   // Check and Initialize Default Data on Firebase
   useEffect(() => {
     const checkAndInitialize = async () => {
@@ -392,16 +403,7 @@ export default function App() {
     handleRedirectReturn();
   }, [orders, dynamicProteinLabels]);
 
-  // Check if admin mode is active (either in query parameter or saved in sessionStorage)
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('admin') === 'true';
-    } catch (e) {
-      return false;
-    }
-  });
+
 
   // Escuta o login do Firebase Auth para ativar o admin mode e persistir de forma reativa
   useEffect(() => {
