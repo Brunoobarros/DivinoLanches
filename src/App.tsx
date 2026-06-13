@@ -190,6 +190,22 @@ export default function App() {
       }
     });
 
+    return () => {
+      unsubHotdogs();
+      unsubDrinks();
+      unsubBasic();
+      unsubExtras();
+      unsubDisabled();
+    };
+  }, []);
+
+  // Escuta os pedidos em tempo real APENAS para administradores autenticados (corrige erro de permissão e vazamento de dados)
+  useEffect(() => {
+    if (!isUserLoggedIn) {
+      setOrders([]);
+      return;
+    }
+
     const unsubOrders = onSnapshot(collection(db, 'orders'), (snapshot) => {
       const items: SavedOrder[] = [];
       snapshot.forEach(doc => {
@@ -199,15 +215,8 @@ export default function App() {
       setOrders(items);
     });
 
-    return () => {
-      unsubHotdogs();
-      unsubDrinks();
-      unsubBasic();
-      unsubExtras();
-      unsubDisabled();
-      unsubOrders();
-    };
-  }, []);
+    return () => unsubOrders();
+  }, [isUserLoggedIn]);
 
   const handleUpdateHotDogsMenu = async (newMenu: MenuItem[]) => {
     try {
