@@ -31,6 +31,10 @@ export default async function handler(req, res) {
     // Format safe email for payer (required field for Pix payments)
     const safeEmail = `cliente_${orderId.replace(/[^a-zA-Z0-9]/g, '')}@divinolanches.com.br`;
 
+    const host = req.headers.host || 'localhost:3000';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const appUrl = `${protocol}://${host}`;
+
     const payload = {
       transaction_amount: Number(totalAmount),
       description: `Pedido Divino Lanches ${orderId}`,
@@ -41,6 +45,7 @@ export default async function handler(req, res) {
         last_name: customerName && customerName.split(' ').length > 1 ? customerName.split(' ').slice(1).join(' ') : 'Divino',
       },
       external_reference: orderId,
+      notification_url: host.includes('localhost') ? undefined : `${appUrl}/api/mercadopago-webhook`,
     };
 
     const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
