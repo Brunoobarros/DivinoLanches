@@ -284,20 +284,17 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-emerald-600 text-white rounded-2xl p-4 flex items-center justify-between shadow-lg"
+            className="bg-emerald-600 text-white rounded-xl py-2 px-3.5 flex items-center justify-between shadow-md text-xs font-bold"
           >
-            <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-md">✓</span>
-              <div>
-                <p className="font-extrabold text-sm">Dogão adicionado com sucesso!</p>
-                <p className="text-xs text-emerald-100">Pronto para finalizar o seu pedido.</p>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px]">✓</span>
+              <span>Dogão adicionado ao carrinho!</span>
             </div>
             {onNavigateToCart && (
               <button
                 type="button"
                 onClick={onNavigateToCart}
-                className="bg-white text-emerald-700 hover:bg-emerald-50 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                className="bg-white text-emerald-700 hover:bg-emerald-50 px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer"
               >
                 Ver Carrinho
               </button>

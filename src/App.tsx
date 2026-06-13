@@ -473,6 +473,16 @@ export default function App() {
     prevPendingCountRef.current = pendingCount;
   }, [orders, isUserLoggedIn]);
 
+  // Auto-dispensa do toast de notificação do admin após 6 segundos
+  useEffect(() => {
+    if (showAdminToast) {
+      const timer = setTimeout(() => {
+        setShowAdminToast(false);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [showAdminToast]);
+
   const handleToggleDisabledItem = async (itemKey: string) => {
     try {
       const updated = disabledItems.includes(itemKey)
@@ -1007,15 +1017,12 @@ export default function App() {
               setActiveTab('admin');
               setShowAdminToast(false);
             }}
-            className="fixed top-5 right-5 z-[9999] bg-brand-charcoal border border-amber-500/25 text-white rounded-2xl p-4 shadow-2xl max-w-sm flex items-center gap-3.5 cursor-pointer hover:bg-slate-800 transition-all select-none"
+            className="fixed top-4 right-4 z-[9999] bg-brand-charcoal border border-amber-500/30 text-white rounded-xl py-2 px-3.5 shadow-xl flex items-center gap-2 cursor-pointer hover:bg-slate-800 transition-all select-none max-w-xs text-xs font-bold"
           >
-            <span className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center animate-bounce text-lg">🔔</span>
-            <div className="flex-1">
-              <p className="font-extrabold text-sm text-amber-400">Novo Pedido Recebido!</p>
-              <p className="text-xs text-slate-300">
-                O pedido <strong className="text-white">{latestOrderId}</strong> acabou de chegar. Clique para visualizar.
-              </p>
-            </div>
+            <span className="animate-bounce text-sm shrink-0">🔔</span>
+            <span className="text-slate-200 leading-none">
+              Novo Pedido: <strong className="text-amber-400 font-extrabold">{latestOrderId}</strong> (Ver)
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
