@@ -355,7 +355,7 @@ export default function AdminPanel({
                 type="email" 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="admin@divinolanches.com.br" 
+                placeholder="Digite seu e-mail" 
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-colors"
                 required
                 autoFocus

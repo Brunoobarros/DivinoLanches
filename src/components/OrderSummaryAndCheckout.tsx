@@ -187,6 +187,7 @@ export default function OrderSummaryAndCheckout({
       const bricksBuilder = mp.bricks();
       const safeEmail = `cliente_${String(Date.now()).slice(-6)}@divinolanches.com.br`;
 
+      const isDebit = paymentMethod === 'cartao_debito';
       const settings = {
         initialization: {
           amount: grandTotal,
@@ -202,7 +203,10 @@ export default function OrderSummaryAndCheckout({
           },
           paymentMethods: {
             minInstallments: 1,
-            maxInstallments: 12
+            maxInstallments: isDebit ? 1 : 12,
+            types: {
+              excluded: isDebit ? ['credit_card'] : ['debit_card']
+            }
           }
         },
         callbacks: {
@@ -1086,8 +1090,14 @@ export default function OrderSummaryAndCheckout({
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-slate-450 font-medium italic mt-1.5">
-              * O pagamento é realizado diretamente no momento da entrega ou retirada (cartão, Pix ou dinheiro).
+            <p className="text-[10px] text-slate-455 font-medium italic mt-1.5 animate-fade-in">
+              {paymentMethod === 'cartao_credito' || paymentMethod === 'cartao_debito'
+                ? '* O pagamento por cartão é processado de forma 100% segura e online agora mesmo.'
+                : paymentMethod === 'pix'
+                ? (manualPixConfig && manualPixConfig.key.trim() !== ''
+                  ? '* Transfira o valor exato para a chave Pix e nos envie o comprovante via WhatsApp.'
+                  : '* O pagamento via Pix é gerado e confirmado automaticamente em tempo real.')
+                : '* O pagamento em dinheiro será realizado no momento da entrega ou retirada.'}
             </p>
 
             {/* Change input for cash */}
