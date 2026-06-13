@@ -173,6 +173,7 @@ export default function OrderSummaryAndCheckout({
     }
 
     const publicKey = import.meta.env.VITE_MERCADO_PAGO_PUBLIC_KEY;
+    console.log("=== PUBLIC KEY USADA NO FRONTEND ===", publicKey);
     if (!publicKey) {
       setValidationError('Erro: Chave pública do Mercado Pago não configurada.');
       setIsCardBrickLoading(false);
