@@ -360,6 +360,18 @@ export default function OrderSummaryAndCheckout({
     }
   }, [grandTotal, paymentMethod]);
 
+  // Lock body scroll when Pix modal is open
+  useEffect(() => {
+    if (showPixModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showPixModal]);
+
   // Polling for Pix Payment Status
   useEffect(() => {
     let intervalId: any;
