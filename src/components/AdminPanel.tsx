@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Shield, 
   Lock, 
+  Mail,
   Trash2, 
   TrendingUp, 
   ShoppingBag, 
@@ -21,7 +22,8 @@ import { PROTEIN_LABELS } from '../constants';
 import { MenuItem, SavedOrder, BasicIngredientConfig, ExtraConfig } from '../types';
 import logoImg from '../../assets/logo.png';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -80,11 +82,25 @@ export default function AdminPanel({
   onDeleteOrder,
   onClearAllOrders
 }: AdminPanelProps) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return sessionStorage.getItem('divino_admin_auth') === 'true';
-  });
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [error, setError] = useState('');
+
+  // Monitora o estado de autenticação do administrador no Firebase
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsLoggedIn(true);
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
+      } else {
+        setIsLoggedIn(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [onLoginSuccess]);
   const [activeSubTab, setActiveSubTab] = useState<'pedidos' | 'cardapio' | 'estatisticas' | 'config'>('pedidos');
   const [ordersFilter, setOrdersFilter] = useState<'pending' | 'confirmed' | 'delivered'>('pending');
 
@@ -285,29 +301,38 @@ export default function AdminPanel({
     return hotDogsMenu.find(h => h.id === type)?.name || type;
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (password === 'admin') {
-      setIsLoggedIn(true);
-      sessionStorage.setItem('divino_admin_auth', 'true');
-      if (onLoginSuccess) {
-        onLoginSuccess();
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch (err: any) {
+      console.error('Erro ao fazer login:', err);
+      if (
+        err.code === 'auth/invalid-email' ||
+        err.code === 'auth/user-not-found' ||
+        err.code === 'auth/wrong-password' ||
+        err.code === 'auth/invalid-credential'
+      ) {
+        setError('E-mail ou senha incorretos! Tente novamente.');
+      } else {
+        setError('Erro de conexão ou login. Verifique seus dados.');
       }
-    } else {
-      setError('Senha incorreta! Tente novamente.');
       setPassword('');
     }
   };
 
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    sessionStorage.removeItem('divino_admin_auth');
-    if (onLogout) {
-      onLogout();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      if (onLogout) {
+        onLogout();
+      }
+      onClose();
+    } catch (err) {
+      console.error('Erro ao deslogar:', err);
     }
-    onClose();
   };
 
   const confirmOrder = (orderId: string) => {
@@ -367,22 +392,37 @@ export default function AdminPanel({
             className="w-16 h-16 object-contain rounded-2xl mx-auto mb-4 shadow-lg border border-slate-100" 
           />
           <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Acesso Administrativo</h2>
-          <p className="text-xs text-slate-400 mt-1">Insira a senha para ver o painel de pedidos</p>
+          <p className="text-xs text-slate-400 mt-1">Identifique-se para ver o painel de pedidos</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4 relative z-10">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Senha de Acesso</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-sans">E-mail</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input 
+                type="email" 
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="admin@divinolanches.com.br" 
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-colors"
+                required
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5 font-sans">Senha de Acesso</label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input 
                 type="password" 
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="Digite a senha admin" 
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-red transition-colors font-mono"
+                placeholder="Digite sua senha" 
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-brand-red focus:bg-white transition-colors font-mono"
                 required
-                autoFocus
               />
             </div>
           </div>
@@ -393,7 +433,7 @@ export default function AdminPanel({
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-xs font-bold flex items-center gap-2"
+                className="p-3 bg-red-50 border border-red-200 text-red-650 rounded-xl text-xs font-bold flex items-center gap-2"
               >
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{error}</span>

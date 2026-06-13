@@ -344,7 +344,7 @@ export default function OrderSummaryAndCheckout({
         }
       };
 
-      const brickController = await bricksBuilder.create('cardPayment', container, settings);
+      const brickController = await bricksBuilder.create('cardPayment', 'cardPaymentBrick_container', settings);
       cardBrickInstanceRef.current = brickController;
     } catch (e) {
       console.error('Error rendering Card Brick:', e);
