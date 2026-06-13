@@ -1234,23 +1234,7 @@ export default function OrderSummaryAndCheckout({
                 </div>
               </div>
 
-              {/* Beneficiary details for manual Pix */}
-              {!pixPaymentId && manualPixConfig && (
-                <div className="w-full text-left bg-slate-50 border border-slate-200/60 p-3.5 rounded-2xl text-[11px] text-slate-600 space-y-1.5 font-sans">
-                  <p className="flex justify-between">
-                    <span className="text-slate-400">Favorecido:</span> 
-                    <strong className="text-slate-800 capitalize">{manualPixConfig.name}</strong>
-                  </p>
-                  <p className="flex justify-between">
-                    <span className="text-slate-400">Cidade:</span> 
-                    <strong className="text-slate-800 uppercase">{manualPixConfig.city}</strong>
-                  </p>
-                  <p className="flex justify-between border-t border-slate-200/50 pt-1.5 mt-1.5">
-                    <span className="text-slate-400">Valor a pagar:</span> 
-                    <strong className="text-brand-red font-mono text-xs">R$ {grandTotal.toFixed(2)}</strong>
-                  </p>
-                </div>
-              )}
+
 
               {/* Polling Spinner (Only for automated Mercado Pago Pix) */}
               {pixPaymentId ? (
