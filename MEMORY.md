@@ -32,7 +32,7 @@
 
 ### Acesso
 - Adicione `?admin=true` na URL ou clique no escudo
-- Senha padrão: **admin**
+- Acesso seguro via **Firebase Authentication (E-mail/Senha)** cadastrado no Firebase Console.
 
 ### Abas do Admin
 
@@ -98,7 +98,7 @@ npm run lint     # Verificar erros TypeScript
 * **Pix Automático & Cartão:** Aprovados de forma transparente via API do Mercado Pago diretamente no site.
 * **Webhook (`/api/mercadopago-webhook.js`):** Escuta de forma assíncrona as notificações do Mercado Pago e atualiza o Firestore para `paid: true` e `confirmed: true` assim que detecta pagamentos aprovados.
 
-### Alertas de Segurança (Débitos Técnicos)
-1. **Autenticação Admin:** A validação da senha `'admin'` é feita no frontend ([AdminPanel.tsx](file:///C:/Users/Ellen%2520Lisboa/Videos/DivinoLanches/src/components/AdminPanel.tsx)). Em produção, recomenda-se migrar para validação no backend ou Firebase Auth.
-2. **Firestore Rules:** Configure as regras de segurança do Firestore para evitar que usuários mal-intencionados façam escritas não autorizadas ou manipulação de preços direto pelo console do navegador.
+### Alertas de Segurança & Débitos Técnicos
+1. **Autenticação Admin (Corrigido):** Migrado e protegido com Firebase Authentication. Não há senhas em texto puro no código do frontend.
+2. **Firestore Rules (Corrigido):** Protegido no console do Firebase para permitir apenas alterações de status, preços e ingredientes por usuários autenticados (Admin).
 3. **Validação de Preço no Servidor:** O cálculo de valores das compras deve ser migrado futuramente para o backend, a fim de evitar que valores de requisição alterados no frontend sejam faturados com preços incorretos.
