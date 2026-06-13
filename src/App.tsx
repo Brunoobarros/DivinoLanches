@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import HotDogCustomizer from './components/HotDogCustomizer';
 import AdminPanel from './components/AdminPanel';
@@ -36,7 +36,8 @@ import {
   updateDoc,
   deleteDoc
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const LOCAL_STORAGE_KEY = 'divino_lanches_cart';
 
@@ -383,20 +384,94 @@ export default function App() {
   }, [orders, dynamicProteinLabels]);
 
   // Check if admin mode is active (either in query parameter or saved in sessionStorage)
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
-      const isParamAdmin = params.get('admin') === 'true';
-      const isAuthAdmin = sessionStorage.getItem('divino_admin_auth') === 'true';
-      if (isParamAdmin || isAuthAdmin) {
-        sessionStorage.setItem('divino_admin_mode', 'true');
-        return true;
-      }
-      return sessionStorage.getItem('divino_admin_mode') === 'true';
+      return params.get('admin') === 'true';
     } catch (e) {
       return false;
     }
   });
+
+  // Escuta o login do Firebase Auth para ativar o admin mode e persistir de forma reativa
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsUserLoggedIn(true);
+        setIsAdminMode(true);
+      } else {
+        setIsUserLoggedIn(false);
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('admin') !== 'true') {
+          setIsAdminMode(false);
+          setActiveTab((current) => (current === 'admin' ? 'montar' : current));
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Estados para notificação de novos pedidos do administrador
+  const [showAdminToast, setShowAdminToast] = useState(false);
+  const [latestOrderId, setLatestOrderId] = useState('');
+  const prevPendingCountRef = useRef<number | null>(null);
+
+  const playNotificationSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+      gain1.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain1.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
+      gain1.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+      osc1.start(audioCtx.currentTime);
+      osc1.stop(audioCtx.currentTime + 0.4);
+      
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1);
+      gain2.gain.setValueAtTime(0, audioCtx.currentTime + 0.1);
+      gain2.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+      osc2.start(audioCtx.currentTime + 0.1);
+      osc2.stop(audioCtx.currentTime + 0.5);
+    } catch (e) {
+      console.warn('Erro ao tocar som de notificação:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (!isUserLoggedIn) {
+      prevPendingCountRef.current = null;
+      return;
+    }
+
+    const pendingOrders = orders.filter((o) => !o.confirmed);
+    const pendingCount = pendingOrders.length;
+
+    if (prevPendingCountRef.current !== null && pendingCount > prevPendingCountRef.current) {
+      playNotificationSound();
+      
+      if (pendingOrders.length > 0) {
+        const sorted = [...pendingOrders].sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+        setLatestOrderId(sorted[0].id);
+        setShowAdminToast(true);
+      }
+    }
+
+    prevPendingCountRef.current = pendingCount;
+  }, [orders, isUserLoggedIn]);
 
   const handleToggleDisabledItem = async (itemKey: string) => {
     try {
@@ -920,6 +995,30 @@ export default function App() {
           </div>
         </button>
       )}
+
+      {/* Toast de Notificação Global para o Administrador */}
+      <AnimatePresence>
+        {showAdminToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            onClick={() => {
+              setActiveTab('admin');
+              setShowAdminToast(false);
+            }}
+            className="fixed top-5 right-5 z-[9999] bg-brand-charcoal border border-amber-500/25 text-white rounded-2xl p-4 shadow-2xl max-w-sm flex items-center gap-3.5 cursor-pointer hover:bg-slate-800 transition-all select-none"
+          >
+            <span className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center animate-bounce text-lg">🔔</span>
+            <div className="flex-1">
+              <p className="font-extrabold text-sm text-amber-400">Novo Pedido Recebido!</p>
+              <p className="text-xs text-slate-300">
+                O pedido <strong className="text-white">{latestOrderId}</strong> acabou de chegar. Clique para visualizar.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
