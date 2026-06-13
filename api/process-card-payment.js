@@ -1,4 +1,6 @@
 // api/process-card-payment.js
+import { calculateOrderTotal } from './utils.js';
+
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,11 +17,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { cardFormData, orderId, customerName } = req.body;
+    const { cardFormData, orderId, customerName, cart, orderType, neighborhood } = req.body;
 
-    if (!cardFormData || !orderId) {
-      return res.status(400).json({ message: 'Dados do pagamento ou ID do pedido ausentes.' });
+    if (!cardFormData || !orderId || !cart) {
+      return res.status(400).json({ message: 'Dados do pagamento, ID do pedido ou carrinho ausentes.' });
     }
+
+    // Recalcular valor no servidor de forma segura
+    const { grandTotal } = await calculateOrderTotal(cart, orderType, neighborhood);
 
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) {
@@ -37,7 +42,7 @@ export default async function handler(req, res) {
       token: cardFormData.token,
       issuer_id: cardFormData.issuer_id,
       payment_method_id: cardFormData.payment_method_id,
-      transaction_amount: Number(cardFormData.transaction_amount),
+      transaction_amount: Number(grandTotal.toFixed(2)),
       installments: Number(cardFormData.installments),
       description: `Pedido Divino Lanches ${orderId}`,
       payer: {

@@ -249,7 +249,10 @@ export default function OrderSummaryAndCheckout({
                     cardFormData,
                     orderId,
                     customerName: current.customerName,
-                    customerPhone: current.customerPhone
+                    customerPhone: current.customerPhone,
+                    cart: current.cart,
+                    orderType: current.orderType,
+                    neighborhood: current.neighborhood
                   })
                 });
 
@@ -688,9 +691,11 @@ export default function OrderSummaryAndCheckout({
             },
             body: JSON.stringify({
               orderId,
-              totalAmount: grandTotal,
               customerName,
-              customerPhone
+              customerPhone,
+              cart,
+              orderType,
+              neighborhood
             })
           });
 

@@ -1,4 +1,6 @@
 // api/create-pix-payment.js
+import { calculateOrderTotal } from './utils.js';
+
 export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -15,11 +17,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { orderId, totalAmount, customerName, customerPhone } = req.body;
+    const { orderId, cart, orderType, neighborhood, customerName, customerPhone } = req.body;
     
-    if (!orderId || !totalAmount) {
-      return res.status(400).json({ message: 'Dados do pedido ausentes.' });
+    if (!orderId || !cart) {
+      return res.status(400).json({ message: 'Dados do pedido ou carrinho ausentes.' });
     }
+
+    // Recalcular valor no servidor de forma segura
+    const { grandTotal } = await calculateOrderTotal(cart, orderType, neighborhood);
 
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) {
@@ -36,7 +41,7 @@ export default async function handler(req, res) {
     const appUrl = `${protocol}://${host}`;
 
     const payload = {
-      transaction_amount: Number(totalAmount),
+      transaction_amount: Number(grandTotal.toFixed(2)),
       description: `Pedido Divino Lanches ${orderId}`,
       payment_method_id: 'pix',
       payer: {
