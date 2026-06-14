@@ -148,6 +148,8 @@ export default function OrderSummaryAndCheckout({
   };
 
   const cardBrickInstanceRef = useRef<any>(null);
+  const cardBrickContainerRef = useRef<HTMLDivElement | null>(null);
+  const brickInitializingRef = useRef(false);
 
   const cleanupCardBrick = async () => {
     if (cardBrickInstanceRef.current) {
@@ -158,17 +160,30 @@ export default function OrderSummaryAndCheckout({
       }
       cardBrickInstanceRef.current = null;
     }
+    // Clear the container DOM to avoid stale nodes
+    if (cardBrickContainerRef.current) {
+      cardBrickContainerRef.current.innerHTML = '';
+    }
   };
 
-  const initCardBrick = async (container: HTMLDivElement) => {
+  const initCardBrick = async () => {
+    const container = cardBrickContainerRef.current;
+    if (!container) return;
+
+    // Prevent concurrent initializations
+    if (brickInitializingRef.current) return;
+    brickInitializingRef.current = true;
     // Clean up previous instance if any
     await cleanupCardBrick();
 
     setIsCardBrickLoading(true);
+    // Clear container before re-creating
+    container.innerHTML = '';
 
     if (!(window as any).MercadoPago) {
       setValidationError('Erro: O SDK do Mercado Pago não foi carregado. Verifique sua conexão ou bloqueador de anúncios.');
       setIsCardBrickLoading(false);
+      brickInitializingRef.current = false;
       return;
     }
 
@@ -177,6 +192,7 @@ export default function OrderSummaryAndCheckout({
     if (!publicKey) {
       setValidationError('Erro: Chave pública do Mercado Pago não configurada.');
       setIsCardBrickLoading(false);
+      brickInitializingRef.current = false;
       return;
     }
 
@@ -365,16 +381,30 @@ export default function OrderSummaryAndCheckout({
       console.error('Error rendering Card Brick:', e);
       setValidationError('Não foi possível carregar o formulário do cartão. Verifique a conexão.');
       setIsCardBrickLoading(false);
+    } finally {
+      brickInitializingRef.current = false;
     }
   };
 
-  const cardBrickContainerRef = React.useCallback((node: HTMLDivElement | null) => {
-    if (node !== null) {
-      initCardBrick(node);
-    } else {
+  // Initialize/re-initialize the Card Brick when payment method or total changes
+  const isCardMethod = paymentMethod === 'cartao_credito' || paymentMethod === 'cartao_debito';
+
+  useEffect(() => {
+    if (!isCardMethod) {
       cleanupCardBrick();
+      return;
     }
-  }, [grandTotal, paymentMethod]);
+
+    // Small delay to ensure the container DOM is mounted
+    const timer = setTimeout(() => {
+      initCardBrick();
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      cleanupCardBrick();
+    };
+  }, [isCardMethod, grandTotal, paymentMethod]);
 
   // Lock body scroll when Pix modal is open
   useEffect(() => {
