@@ -79,7 +79,7 @@ export default function OrderSummaryAndCheckout({
   const [customerPhone, setCustomerPhone] = useState('');
   const [street, setStreet] = useState('');
   const [num, setNum] = useState('');
-  const [neighborhood, setNeighborhood] = useState(NEIGHBORHOODS[0].name);
+  const [neighborhood, setNeighborhood] = useState('');
   const [reference, setReference] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro'>('pix');
   const [changeFor, setChangeFor] = useState('');
@@ -107,8 +107,23 @@ export default function OrderSummaryAndCheckout({
 
   const getDeliveryFee = () => {
     if (orderType === 'retirada') return 0;
-    const found = NEIGHBORHOODS.find((n) => n.name === neighborhood);
-    return found ? found.fee : 0;
+    if (!neighborhood.trim()) return 0;
+    
+    // Smart case-insensitive matching ignoring accents
+    const normalize = (str: string) => 
+      str.toLowerCase()
+         .normalize('NFD')
+         .replace(/[\u0300-\u036f]/g, '')
+         .trim();
+         
+    const normalizedInput = normalize(neighborhood);
+    const found = NEIGHBORHOODS.find((n) => normalize(n.name) === normalizedInput);
+    
+    if (found) return found.fee;
+    
+    // Fallback: If not found, use the fee of 'Outros' or default to 12.00
+    const outros = NEIGHBORHOODS.find((n) => n.name.toLowerCase().includes('outros'));
+    return outros ? outros.fee : 12.00;
   };
 
   const subtotal = calculateSubtotal();
@@ -625,6 +640,10 @@ export default function OrderSummaryAndCheckout({
         setValidationError('Por favor, informe o número da casa/apto!');
         return;
       }
+      if (!neighborhood.trim()) {
+        setValidationError('Por favor, informe o seu bairro!');
+        return;
+      }
     }
 
     if (paymentMethod === 'dinheiro' && !changeFor.trim()) {
@@ -778,6 +797,7 @@ export default function OrderSummaryAndCheckout({
     setCustomerPhone('');
     setStreet('');
     setNum('');
+    setNeighborhood('');
     setReference('');
     setChangeFor('');
   };
@@ -1028,18 +1048,15 @@ export default function OrderSummaryAndCheckout({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Bairro para Entrega (Com taxa) *</label>
-                    <select
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Bairro para Entrega *</label>
+                    <input
+                      type="text"
                       value={neighborhood}
                       onChange={(e) => setNeighborhood(e.target.value)}
-                      className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-hidden focus:ring-1 focus:ring-red-500 focus:bg-white cursor-pointer"
-                    >
-                      {NEIGHBORHOODS.map((item) => (
-                        <option key={item.name} value={item.name}>
-                          {item.name} - R$ {item.fee.toFixed(2)}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Ex: Centro ou Alvorada"
+                      className="w-full text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 focus:outline-hidden focus:ring-1 focus:ring-red-500 focus:bg-white"
+                      required={orderType === 'entrega'}
+                    />
                   </div>
 
                   <div>
