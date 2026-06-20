@@ -19,11 +19,7 @@ export const PROTEIN_LABELS: Record<string, string> = {
 };
 
 export const EXTRA_PRICES = {
-  batataPalha: 2.0,
   queijo: 3.0,
-  molhoEspecial: 1.5,
-  molhoVerde: 1.5,
-  molhoBarbecue: 1.5,
 };
 
 export const DRINKS_MENU: Drink[] = [

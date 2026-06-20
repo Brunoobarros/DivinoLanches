@@ -11,9 +11,6 @@ export interface BaseToppings {
 
 export interface ExtraToppings {
   queijo: boolean;
-  molhoEspecial: boolean;
-  molhoVerde: boolean;
-  molhoBarbecue: boolean;
 }
 
 export interface HotDogItem {

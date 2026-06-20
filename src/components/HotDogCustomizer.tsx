@@ -32,9 +32,6 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   });
   const [extras, setExtras] = useState<ExtraToppings>({
     queijo: false,
-    molhoEspecial: false,
-    molhoVerde: false,
-    molhoBarbecue: false,
   });
   const [notes, setNotes] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -195,9 +192,6 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
     let total = getHotDogPrice(type);
     
     if (extras.queijo) total += EXTRA_PRICES.queijo;
-    if (extras.molhoEspecial) total += EXTRA_PRICES.molhoEspecial;
-    if (extras.molhoVerde) total += EXTRA_PRICES.molhoVerde;
-    if (extras.molhoBarbecue) total += EXTRA_PRICES.molhoBarbecue;
 
     return total;
   };
@@ -255,9 +249,6 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
     });
     setExtras({
       queijo: false,
-      molhoEspecial: false,
-      molhoVerde: false,
-      molhoBarbecue: false,
     });
     setSelectedDrinks({});
     setNotes('');
@@ -562,12 +553,12 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     </h4>
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                       {[
-                        { key: 'milhoErvilha' as const, label: 'Milho & Ervilha Dupla', desc: 'Docinho e crocante' },
+                        { key: 'pao' as const, label: 'Pão de Hotdog', desc: 'Pão de hotdog fofinho' },
+                        { key: 'salsicha' as const, label: 'Salsicha', desc: 'Salsicha cozida' },
                         { key: 'vinagrete' as const, label: 'Vinagrete Picadinho', desc: 'Tomate fresco e cebola' },
                         { key: 'cenoura' as const, label: 'Cenoura Raladinha', desc: 'Fina e nutritiva' },
+                        { key: 'milhoErvilha' as const, label: 'Milho & Ervilha Dupla', desc: 'Docinho e crocante' },
                         { key: 'batataPalha' as const, label: 'Batata Palha Crocante', desc: 'Sempre fresquinha' },
-                        { key: 'salsicha' as const, label: 'Salsicha', desc: 'Salsicha cozida' },
-                        { key: 'pao' as const, label: 'Pão de Hotdog', desc: 'Pão de hotdog fofinho' },
                       ].map(({ key, label, desc }) => {
                         const isProductDisabled = disabledItems.includes(key);
                         const isSelected = baseToppings[key] && !isProductDisabled;

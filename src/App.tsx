@@ -70,10 +70,7 @@ export default function App() {
     { id: 'pao', name: 'Pão', description: 'Pão de hotdog fofinho' }
   ]);
   const [extrasConfig, setExtrasConfig] = useState<ExtraConfig[]>([
-    { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' },
-    { id: 'molhoEspecial', name: 'Molho Especial', price: 1.50, description: 'Receita secreta da casa' },
-    { id: 'molhoVerde', name: 'Molho Verde', price: 1.50, description: 'Sabor marcante' },
-    { id: 'molhoBarbecue', name: 'Molho Barbecue', price: 1.50, description: 'Defumado e adocicado' }
+    { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' }
   ]);
   const [disabledItems, setDisabledItems] = useState<string[]>([]);
   const [orders, setOrders] = useState<SavedOrder[]>([]);
@@ -138,10 +135,7 @@ export default function App() {
           
           // default extras
           const defaultExtras = [
-            { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' },
-            { id: 'molhoEspecial', name: 'Molho Especial', price: 1.50, description: 'Receita secreta da casa' },
-            { id: 'molhoVerde', name: 'Molho Verde', price: 1.50, description: 'Sabor marcante' },
-            { id: 'molhoBarbecue', name: 'Molho Barbecue', price: 1.50, description: 'Defumado e adocicado' }
+            { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' }
           ];
           defaultExtras.forEach(item => {
             batch.set(doc(db, 'extras_config', item.id), { name: item.name, price: item.price, description: item.description });
@@ -157,6 +151,14 @@ export default function App() {
           const salsichaSnap = await getDoc(doc(db, 'basic_ingredients', 'salsicha'));
           const paoSnap = await getDoc(doc(db, 'basic_ingredients', 'pao'));
           
+          // Also clean up non-existing sauces from extras_config in Firebase
+          const specialRef = doc(db, 'extras_config', 'molhoEspecial');
+          const verdeRef = doc(db, 'extras_config', 'molhoVerde');
+          const bbqRef = doc(db, 'extras_config', 'molhoBarbecue');
+          const specialSnap = await getDoc(specialRef);
+          const verdeSnap = await getDoc(verdeRef);
+          const bbqSnap = await getDoc(bbqRef);
+          
           const batch = writeBatch(db);
           let needsCommit = false;
           
@@ -168,10 +170,22 @@ export default function App() {
             batch.set(doc(db, 'basic_ingredients', 'pao'), { name: 'Pão', description: 'Pão de hotdog fofinho' });
             needsCommit = true;
           }
+          if (specialSnap.exists()) {
+            batch.delete(specialRef);
+            needsCommit = true;
+          }
+          if (verdeSnap.exists()) {
+            batch.delete(verdeRef);
+            needsCommit = true;
+          }
+          if (bbqSnap.exists()) {
+            batch.delete(bbqRef);
+            needsCommit = true;
+          }
           
           if (needsCommit) {
             await batch.commit();
-            console.log('Firebase migrated with salsicha and pao ingredients.');
+            console.log('Firebase migrated: basic ingredients updated & unused sauces deleted.');
           }
         }
       } catch (e) {
@@ -234,7 +248,7 @@ export default function App() {
       snapshot.forEach(doc => {
         items.push({ id: doc.id, ...doc.data() } as BasicIngredientConfig);
       });
-      const orderMap = { milhoErvilha: 1, vinagrete: 2, cenoura: 3, batataPalha: 4, salsicha: 5, pao: 6 };
+      const orderMap = { pao: 1, salsicha: 2, vinagrete: 3, cenoura: 4, milhoErvilha: 5, batataPalha: 6 };
       items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
       if (items.length > 0) setBasicIngredients(items);
       loaded.basic = true;
@@ -250,7 +264,7 @@ export default function App() {
       snapshot.forEach(doc => {
         items.push({ id: doc.id, ...doc.data() } as ExtraConfig);
       });
-      const orderMap = { queijo: 1, molhoEspecial: 2, molhoVerde: 3, molhoBarbecue: 4 };
+      const orderMap = { queijo: 1 };
       items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
       if (items.length > 0) setExtrasConfig(items);
       loaded.extras = true;

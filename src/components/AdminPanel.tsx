@@ -1179,12 +1179,12 @@ export default function AdminPanel({
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Ingredientes Básicos (Passo 2)</span>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                     {[
-                      { key: 'milhoErvilha', label: 'Milho & Ervilha' },
+                      { key: 'pao', label: 'Pão' },
+                      { key: 'salsicha', label: 'Salsicha' },
                       { key: 'vinagrete', label: 'Vinagrete' },
                       { key: 'cenoura', label: 'Cenoura' },
-                      { key: 'batataPalha', label: 'Batata Palha' },
-                      { key: 'salsicha', label: 'Salsicha' },
-                      { key: 'pao', label: 'Pão' }
+                      { key: 'milhoErvilha', label: 'Milho & Ervilha' },
+                      { key: 'batataPalha', label: 'Batata Palha' }
                     ].map((item) => {
                       const isAvailable = !disabledItems.includes(item.key);
                       return (

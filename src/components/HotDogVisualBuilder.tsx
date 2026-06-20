@@ -185,54 +185,7 @@ export default function HotDogVisualBuilder({
           )}
         </AnimatePresence>
 
-        {/* Extra Toppings: Sauces (Molhos) */}
-        {/* Molho Verde */}
-        <AnimatePresence>
-          {extras.molhoVerde && (
-            <motion.svg
-              initial={{ strokeDasharray: 100, strokeDashoffset: 100 }}
-              animate={{ strokeDashoffset: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
-              className="absolute w-52 h-12 z-45 bottom-12 stroke-lime-500 fill-none stroke-[4px]"
-              viewBox="0 0 100 20"
-            >
-              <path d="M5,10 Q15,0 25,10 T45,10 T65,10 T85,10 T95,10" strokeLinecap="round" />
-            </motion.svg>
-          )}
-        </AnimatePresence>
 
-        {/* Molho Barbecue */}
-        <AnimatePresence>
-          {extras.molhoBarbecue && (
-            <motion.svg
-              initial={{ strokeDasharray: 100, strokeDashoffset: 100 }}
-              animate={{ strokeDashoffset: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.1 }}
-              className="absolute w-52 h-12 z-46 bottom-11 stroke-amber-950 fill-none stroke-[3.5px]"
-              viewBox="0 0 100 20"
-            >
-              <path d="M10,8 Q20,18 30,8 T50,8 T70,8 T90,8" strokeLinecap="round" />
-            </motion.svg>
-          )}
-        </AnimatePresence>
-
-        {/* Molho Especial Divino */}
-        <AnimatePresence>
-          {extras.molhoEspecial && (
-            <motion.svg
-              initial={{ strokeDasharray: 100, strokeDashoffset: 100 }}
-              animate={{ strokeDashoffset: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
-              className="absolute w-52 h-12 z-47 bottom-10 stroke-orange-500 fill-none stroke-[3px]"
-              viewBox="0 0 100 20"
-            >
-              <path d="M2,15 C20,-5 40,30 60,10 C80,-10 90,20 100,10" strokeLinecap="round" />
-            </motion.svg>
-          )}
-        </AnimatePresence>
 
         {/* Bread Front / Bun top */}
         {baseToppings.pao && (

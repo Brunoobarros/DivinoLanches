@@ -102,3 +102,10 @@ npm run lint     # Verificar erros TypeScript
 1. **Autenticação Admin (Corrigido):** Migrado e protegido com Firebase Authentication. Não há senhas em texto puro no código do frontend.
 2. **Firestore Rules (Corrigido):** Protegido no console do Firebase para permitir apenas alterações de status, preços e ingredientes por usuários autenticados (Admin).
 3. **Validação de Preço no Servidor:** O cálculo de valores das compras deve ser migrado futuramente para o backend, a fim de evitar que valores de requisição alterados no frontend sejam faturados com preços incorretos.
+
+---
+
+## 📈 Melhorias e Ajustes Recentes (Junho 2026)
+
+1. **Evitar Pisque de Preço no Início (Resolvido):** Adicionada tela de carregamento (`isLoading`) integrada ao Firestore que aguarda a sincronização completa do cardápio e preços reais do banco antes de renderizar a interface do cliente.
+2. **Pão e Salsicha Customizáveis (Resolvido):** Inseridos como ingredientes básicos no Passo 2, permitindo que o cliente os desmarque caso deseje retirá-los do pedido. O visualizador de hotdog reage em tempo real (esconde o pão/salsicha) e o resumo do pedido/WhatsApp exibe a exclusão como `(sem pão)` ou `(sem salsicha)`.

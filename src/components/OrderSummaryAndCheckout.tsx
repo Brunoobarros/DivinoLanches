@@ -531,9 +531,6 @@ export default function OrderSummaryAndCheckout({
     // Extras
     const extrasList: string[] = [];
     if (dog.extras.queijo) extrasList.push('Queijo Derretido');
-    if (dog.extras.molhoEspecial) extrasList.push('Molho Especial');
-    if (dog.extras.molhoVerde) extrasList.push('Molho Verde');
-    if (dog.extras.molhoBarbecue) extrasList.push('Molho Barbecue');
 
     if (extrasList.length > 0) {
       parts.push(`+ Adicionais: ${extrasList.join(', ')}`);
