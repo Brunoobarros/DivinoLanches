@@ -10,9 +10,10 @@ import {
   MenuItem,
   SavedOrder,
   BasicIngredientConfig,
-  ExtraConfig
+  ExtraConfig,
+  NeighborhoodFee
 } from './types';
-import { PROTEIN_LABELS, WHATSAPP_NUMBER } from './constants';
+import { PROTEIN_LABELS, WHATSAPP_NUMBER, NEIGHBORHOODS } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Crown, 
@@ -73,6 +74,7 @@ export default function App() {
     { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' }
   ]);
   const [disabledItems, setDisabledItems] = useState<string[]>([]);
+  const [deliveryFees, setDeliveryFees] = useState<NeighborhoodFee[]>(NEIGHBORHOODS);
   const [orders, setOrders] = useState<SavedOrder[]>([]);
 
   // Check if admin mode is active (either in query parameter or saved in sessionStorage)
@@ -144,6 +146,11 @@ export default function App() {
           // default disabled items
           batch.set(doc(db, 'config', 'disabled_items'), { items: [] });
           
+          // default delivery fees
+          NEIGHBORHOODS.forEach(item => {
+            batch.set(doc(db, 'delivery_fees', item.id), { name: item.name, fee: item.fee });
+          });
+          
           await batch.commit();
           console.log('Firebase initialized with default data.');
         } else {
@@ -187,6 +194,17 @@ export default function App() {
             await batch.commit();
             console.log('Firebase migrated: basic ingredients updated & unused sauces deleted.');
           }
+
+          // Migration: initialize delivery fees if they do not exist
+          const centroFeeSnap = await getDoc(doc(db, 'delivery_fees', 'centro'));
+          if (!centroFeeSnap.exists()) {
+            const deliveryBatch = writeBatch(db);
+            NEIGHBORHOODS.forEach(item => {
+              deliveryBatch.set(doc(db, 'delivery_fees', item.id), { name: item.name, fee: item.fee });
+            });
+            await deliveryBatch.commit();
+            console.log('Firebase migrated: initialized delivery_fees collection.');
+          }
         }
       } catch (e) {
         console.error('Error checking or initializing Firebase data', e);
@@ -202,11 +220,19 @@ export default function App() {
       drinks: false,
       basic: false,
       extras: false,
-      disabled: false
+      disabled: false,
+      deliveryFees: false
     };
 
     const checkLoadingComplete = () => {
-      if (loaded.hotdogs && loaded.drinks && loaded.basic && loaded.extras && loaded.disabled) {
+      if (
+        loaded.hotdogs && 
+        loaded.drinks && 
+        loaded.basic && 
+        loaded.extras && 
+        loaded.disabled &&
+        loaded.deliveryFees
+      ) {
         setIsLoading(false);
       }
     };
@@ -287,12 +313,29 @@ export default function App() {
       checkLoadingComplete();
     });
 
+    const unsubDeliveryFees = onSnapshot(collection(db, 'delivery_fees'), (snapshot) => {
+      const items: NeighborhoodFee[] = [];
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, ...doc.data() } as NeighborhoodFee);
+      });
+      const orderMap = { centro: 1, alvorada: 2, novo_horizonte: 3, jardim_primavera: 4, vila_imperial: 5, parque_nacoes: 6, outros: 7 };
+      items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
+      if (items.length > 0) setDeliveryFees(items);
+      loaded.deliveryFees = true;
+      checkLoadingComplete();
+    }, (err) => {
+      console.error('Erro ao escutar taxas de entrega:', err);
+      loaded.deliveryFees = true;
+      checkLoadingComplete();
+    });
+
     return () => {
       unsubHotdogs();
       unsubDrinks();
       unsubBasic();
       unsubExtras();
       unsubDisabled();
+      unsubDeliveryFees();
     };
   }, []);
 
@@ -375,6 +418,21 @@ export default function App() {
       await batch.commit();
     } catch (e) {
       console.error('Erro ao atualizar adicionais/extras', e);
+    }
+  };
+
+  const handleUpdateDeliveryFees = async (newFees: NeighborhoodFee[]) => {
+    try {
+      const batch = writeBatch(db);
+      newFees.forEach(item => {
+        batch.set(doc(db, 'delivery_fees', item.id), {
+          name: item.name,
+          fee: item.fee
+        });
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error('Erro ao atualizar taxas de entrega', e);
     }
   };
 
@@ -846,6 +904,8 @@ export default function App() {
                       onMarkAsDelivered={handleMarkAsDelivered}
                       onDeleteOrder={handleDeleteOrder}
                       onClearAllOrders={handleClearAllOrders}
+                      deliveryFees={deliveryFees}
+                      onUpdateDeliveryFees={handleUpdateDeliveryFees}
                     />
                   </motion.div>
                 )}
@@ -868,6 +928,7 @@ export default function App() {
                       proteinLabels={dynamicProteinLabels}
                       forceSuccessOrderId={forceSuccessOrderId}
                       onClearForceSuccess={() => setForceSuccessOrderId(null)}
+                      deliveryFees={deliveryFees}
                     />
                   </motion.div>
                 )}
@@ -951,6 +1012,8 @@ export default function App() {
                   onMarkAsDelivered={handleMarkAsDelivered}
                   onDeleteOrder={handleDeleteOrder}
                   onClearAllOrders={handleClearAllOrders}
+                  deliveryFees={deliveryFees}
+                  onUpdateDeliveryFees={handleUpdateDeliveryFees}
                 />
               )}
               {activeTab === 'carrinho' && (
@@ -964,6 +1027,7 @@ export default function App() {
                   proteinLabels={dynamicProteinLabels}
                   forceSuccessOrderId={forceSuccessOrderId}
                   onClearForceSuccess={() => setForceSuccessOrderId(null)}
+                  deliveryFees={deliveryFees}
                 />
               )}
             </div>

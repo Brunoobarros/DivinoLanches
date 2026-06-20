@@ -60,6 +60,7 @@ export interface CustomerOrder {
 }
 
 export interface NeighborhoodFee {
+  id: string;
   name: string;
   fee: number;
 }

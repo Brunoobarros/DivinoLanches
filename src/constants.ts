@@ -31,13 +31,13 @@ export const DRINKS_MENU: Drink[] = [
 ];
 
 export const NEIGHBORHOODS: NeighborhoodFee[] = [
-  { name: 'Centro', fee: 5.00 },
-  { name: 'Alvorada', fee: 6.00 },
-  { name: 'Novo Horizonte', fee: 7.00 },
-  { name: 'Jardim Primavera', fee: 8.00 },
-  { name: 'Vila Imperial', fee: 9.00 },
-  { name: 'Parque das Nações', fee: 10.00 },
-  { name: 'Outros (Consultar taxa)', fee: 12.00 },
+  { id: 'centro', name: 'Centro', fee: 5.00 },
+  { id: 'alvorada', name: 'Alvorada', fee: 6.00 },
+  { id: 'novo_horizonte', name: 'Novo Horizonte', fee: 7.00 },
+  { id: 'jardim_primavera', name: 'Jardim Primavera', fee: 8.00 },
+  { id: 'vila_imperial', name: 'Vila Imperial', fee: 9.00 },
+  { id: 'parque_nacoes', name: 'Parque das Nações', fee: 10.00 },
+  { id: 'outros', name: 'Outros (Consultar taxa)', fee: 12.00 },
 ];
 
 export const WHATSAPP_NUMBER = '5582996714559';

@@ -19,7 +19,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { PROTEIN_LABELS } from '../constants';
-import { MenuItem, SavedOrder, BasicIngredientConfig, ExtraConfig } from '../types';
+import { MenuItem, SavedOrder, BasicIngredientConfig, ExtraConfig, NeighborhoodFee } from '../types';
 import logoImg from '../../assets/logo.png';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -45,6 +45,8 @@ interface AdminPanelProps {
   onMarkAsDelivered: (orderId: string) => void;
   onDeleteOrder: (orderId: string) => void;
   onClearAllOrders: () => void;
+  deliveryFees: NeighborhoodFee[];
+  onUpdateDeliveryFees: (fees: NeighborhoodFee[]) => void;
 }
 
 const DEFAULT_BASIC_INGREDIENTS: BasicIngredientConfig[] = [
@@ -80,7 +82,9 @@ export default function AdminPanel({
   onUnconfirmOrder,
   onMarkAsDelivered,
   onDeleteOrder,
-  onClearAllOrders
+  onClearAllOrders,
+  deliveryFees,
+  onUpdateDeliveryFees
 }: AdminPanelProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -166,6 +170,11 @@ export default function AdminPanel({
   const [editBasicName, setEditBasicName] = useState('');
   const [editBasicDescription, setEditBasicDescription] = useState('');
 
+  // State for delivery fees editing
+  const [editingDeliveryFeeId, setEditingDeliveryFeeId] = useState<string | null>(null);
+  const [editDeliveryFeeName, setEditDeliveryFeeName] = useState('');
+  const [editDeliveryFeeAmount, setEditDeliveryFeeAmount] = useState('');
+
   const startEditing = (item: MenuItem) => {
     setEditingItemId(item.id);
     setEditName(item.name);
@@ -240,6 +249,30 @@ export default function AdminPanel({
     );
     onUpdateBasicIngredients(updated);
     setEditingBasicId(null);
+  };
+
+  const startEditingDeliveryFee = (item: NeighborhoodFee) => {
+    setEditingDeliveryFeeId(item.id);
+    setEditDeliveryFeeName(item.name);
+    setEditDeliveryFeeAmount(item.fee.toString());
+  };
+
+  const saveDeliveryFee = (id: string) => {
+    const feeNum = parseFloat(editDeliveryFeeAmount);
+    if (isNaN(feeNum) || feeNum < 0) {
+      alert('Por favor, insira uma taxa válida.');
+      return;
+    }
+    if (!editDeliveryFeeName.trim()) {
+      alert('O nome do bairro não pode ser vazio.');
+      return;
+    }
+
+    const updated = deliveryFees.map(item =>
+      item.id === id ? { ...item, name: editDeliveryFeeName.trim(), fee: feeNum } : item
+    );
+    onUpdateDeliveryFees(updated);
+    setEditingDeliveryFeeId(null);
   };
 
   const getProteinLabel = (type: string) => {
@@ -1010,6 +1043,82 @@ export default function AdminPanel({
                           <div className="flex justify-end mt-auto pt-2 border-t border-slate-100/50">
                             <button 
                               onClick={() => startEditing(item)}
+                              className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 rounded-lg text-[10px] font-bold uppercase transition-colors cursor-pointer text-slate-655"
+                            >
+                              Editar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SECTION 5: TAXAS DE ENTREGA */}
+            <div className="space-y-3 mt-6">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Taxas de Entrega por Bairro</h4>
+              <p className="text-[10.5px] text-slate-500 -mt-1">Gerencie os bairros atendidos e suas respectivas taxas de entrega.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {deliveryFees.map((item) => {
+                  const isEditing = editingDeliveryFeeId === item.id;
+                  return (
+                    <div key={item.id} className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl text-left relative flex flex-col justify-between">
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-455 uppercase">Nome do Bairro</label>
+                            <input 
+                              type="text" 
+                              value={editDeliveryFeeName} 
+                              onChange={e => setEditDeliveryFeeName(e.target.value)}
+                              className="w-full text-xs p-2 border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-brand-red font-bold text-slate-800"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-slate-455 uppercase">Taxa de Entrega (R$)</label>
+                            <input 
+                              type="number" 
+                              step="0.01" 
+                              value={editDeliveryFeeAmount} 
+                              onChange={e => setEditDeliveryFeeAmount(e.target.value)}
+                              className="w-full text-xs p-2 border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-brand-red font-mono font-bold text-slate-800"
+                            />
+                          </div>
+                          <div className="flex gap-2 justify-end pt-1">
+                            <button 
+                              onClick={() => setEditingDeliveryFeeId(null)}
+                              className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 rounded-lg text-[10px] font-bold uppercase transition-colors cursor-pointer text-slate-600"
+                            >
+                              Cancelar
+                            </button>
+                            <button 
+                              onClick={() => saveDeliveryFee(item.id)}
+                              className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold uppercase transition-colors cursor-pointer"
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col h-full justify-between">
+                          <div>
+                            <div className="flex justify-between items-start mb-1">
+                              <h5 className="font-extrabold text-xs text-slate-800">{item.name}</h5>
+                              <span className="font-mono text-xs font-bold text-brand-red">
+                                {item.fee === 0 ? 'Grátis' : `R$ ${item.fee.toFixed(2)}`}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-400">
+                              {item.id === 'outros' 
+                                ? 'Taxa padrão aplicada para bairros não listados.' 
+                                : 'Taxa aplicada para este bairro específico.'}
+                            </p>
+                          </div>
+                          <div className="flex justify-end mt-auto pt-2 border-t border-slate-100/50">
+                            <button 
+                              onClick={() => startEditingDeliveryFee(item)}
                               className="px-2.5 py-1.5 border border-slate-200 hover:bg-slate-100 rounded-lg text-[10px] font-bold uppercase transition-colors cursor-pointer text-slate-655"
                             >
                               Editar

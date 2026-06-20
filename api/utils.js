@@ -13,16 +13,7 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
 
-// Neighborhood delivery fee mapping matching constants.ts exactly
-const NEIGHBORHOODS = [
-  { name: 'Centro', fee: 5.00 },
-  { name: 'Alvorada', fee: 6.00 },
-  { name: 'Novo Horizonte', fee: 7.00 },
-  { name: 'Jardim Primavera', fee: 8.00 },
-  { name: 'Vila Imperial', fee: 9.00 },
-  { name: 'Parque das Nações', fee: 10.00 },
-  { name: 'Outros (Consultar taxa)', fee: 12.00 },
-];
+
 
 export async function calculateOrderTotal(cart, orderType, neighborhood) {
   if (!cart) return { subtotal: 0, deliveryFee: 0, grandTotal: 0 };
@@ -105,8 +96,29 @@ export async function calculateOrderTotal(cart, orderType, neighborhood) {
   // 3. Calcular Taxa de Entrega
   let deliveryFee = 0;
   if (orderType === 'entrega' && neighborhood) {
-    const found = NEIGHBORHOODS.find(n => n.name.toLowerCase().trim() === neighborhood.toLowerCase().trim());
-    deliveryFee = found ? found.fee : 12.00; // Taxa padrão "Outros" como contingência
+    const deliveryFeesSnap = await getDocs(collection(db, 'delivery_fees'));
+    const deliveryFees = [];
+    deliveryFeesSnap.forEach(doc => {
+      deliveryFees.push({ id: doc.id, ...doc.data() });
+    });
+
+    const normalize = (str) => 
+      String(str || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+    const normalizedInput = normalize(neighborhood);
+    const found = deliveryFees.find(n => normalize(n.name) === normalizedInput);
+    
+    if (found) {
+      deliveryFee = found.fee;
+    } else {
+      // Fallback: Busca taxa de "Outros" ou usa R$ 12.00
+      const outros = deliveryFees.find(n => n.id === 'outros' || normalize(n.name).includes('outros'));
+      deliveryFee = outros ? outros.fee : 12.00;
+    }
   }
 
   const grandTotal = subtotal + deliveryFee;

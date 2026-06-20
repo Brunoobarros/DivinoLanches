@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder } from '../types';
-import { NEIGHBORHOODS, WHATSAPP_NUMBER } from '../constants';
+import { Cart, HotDogItem, DrinkCartItem, OrderType, CustomerOrder, NeighborhoodFee } from '../types';
+import { WHATSAPP_NUMBER } from '../constants';
 import { ShoppingCart, Trash2, MapPin, CheckCircle, Smartphone, Send, DollarSign, Copy, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -16,6 +16,7 @@ interface OrderSummaryAndCheckoutProps {
   proteinLabels?: Record<string, string>;
   forceSuccessOrderId?: string | null;
   onClearForceSuccess?: () => void;
+  deliveryFees: NeighborhoodFee[];
 }
 
 // Helper to calculate CRC16 CCITT for static Pix payload
@@ -72,6 +73,7 @@ export default function OrderSummaryAndCheckout({
   proteinLabels,
   forceSuccessOrderId,
   onClearForceSuccess,
+  deliveryFees,
 }: OrderSummaryAndCheckoutProps) {
   // Checkout Details Status
   const [orderType, setOrderType] = useState<OrderType>('retirada');
@@ -117,12 +119,12 @@ export default function OrderSummaryAndCheckout({
          .trim();
          
     const normalizedInput = normalize(neighborhood);
-    const found = NEIGHBORHOODS.find((n) => normalize(n.name) === normalizedInput);
+    const found = deliveryFees.find((n) => normalize(n.name) === normalizedInput);
     
     if (found) return found.fee;
     
     // Fallback: If not found, use the fee of 'Outros' or default to 12.00
-    const outros = NEIGHBORHOODS.find((n) => n.name.toLowerCase().includes('outros'));
+    const outros = deliveryFees.find((n) => n.id === 'outros' || n.name.toLowerCase().includes('outros'));
     return outros ? outros.fee : 12.00;
   };
 
