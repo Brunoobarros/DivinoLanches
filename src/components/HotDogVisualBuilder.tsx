@@ -4,7 +4,7 @@ import { HotDogType, BaseToppings, ExtraToppings } from '../types';
 import { PROTEIN_LABELS } from '../constants';
 
 interface HotDogVisualBuilderProps {
-  type: HotDogType;
+  type: HotDogType | null;
   baseToppings: BaseToppings;
   extras: ExtraToppings;
 }
@@ -200,7 +200,7 @@ export default function HotDogVisualBuilder({
         <span className="text-xs text-amber-900 bg-amber-100/60 px-3 py-1 rounded-full font-medium">
           Hot Dog de{' '}
           <strong className="text-red-700 capitalize font-bold">
-            {PROTEIN_LABELS[type] || type}
+            {type ? (PROTEIN_LABELS[type] || type) : 'Monte o seu!'}
           </strong>
         </span>
       </div>

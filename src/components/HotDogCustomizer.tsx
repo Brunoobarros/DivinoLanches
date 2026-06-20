@@ -21,7 +21,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   const [currentStep, setCurrentStep] = useState<number>(1);
 
   // State for customization
-  const [type, setType] = useState<HotDogType>('boi');
+  const [type, setType] = useState<HotDogType | null>(null);
   const [baseToppings, setBaseToppings] = useState<BaseToppings>({
     milhoErvilha: true,
     vinagrete: true,
@@ -44,14 +44,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
     const active = getSelectedProteins();
     const hasDisabledProtein = active.some(p => disabledItems.includes(p));
     if (hasDisabledProtein) {
-      const available: ('boi' | 'frango' | 'calabresa')[] = [];
-      if (!disabledItems.includes('boi')) available.push('boi');
-      if (!disabledItems.includes('frango')) available.push('frango');
-      if (!disabledItems.includes('calabresa')) available.push('calabresa');
-      
-      if (available.length > 0) {
-        setType(available[0]);
-      }
+      setType(null);
     }
 
     // 2. Check basic toppings
@@ -117,13 +110,14 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   };
 
   const getSelectedProteins = (): ('boi' | 'frango' | 'calabresa')[] => {
+    if (!type) return [];
     if (type === 'boi') return ['boi'];
     if (type === 'frango') return ['frango'];
     if (type === 'calabresa') return ['calabresa'];
     if (type === 'boi_frango') return ['boi', 'frango'];
     if (type === 'boi_calabresa') return ['boi', 'calabresa'];
     if (type === 'frango_calabresa') return ['frango', 'calabresa'];
-    return ['boi'];
+    return [];
   };
 
   const handleToggleProtein = (protein: 'boi' | 'frango' | 'calabresa') => {
@@ -131,14 +125,19 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
     const exists = current.includes(protein);
     
     if (exists) {
-      if (current.length === 1) return; // Mantém pelo menos um selecionado
+      if (current.length === 1) {
+        setType(null);
+        return;
+      }
       const next = current.filter(p => p !== protein);
       setType(next[0] as HotDogType);
     } else {
       if (current.length >= 2) return; // Limite de 2 sabores
       const next = [...current, protein].sort();
       
-      if (next.includes('boi') && next.includes('frango')) {
+      if (next.length === 1) {
+        setType(next[0] as HotDogType);
+      } else if (next.includes('boi') && next.includes('frango')) {
         setType('boi_frango');
       } else if (next.includes('boi') && next.includes('calabresa')) {
         setType('boi_calabresa');
@@ -149,7 +148,8 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   };
 
   // Generate dynamic protein label for display
-  const getDynamicProteinLabel = (dogType: string): string => {
+  const getDynamicProteinLabel = (dogType: string | null): string => {
+    if (!dogType) return 'Nenhum sabor selecionado';
     if (dogType === 'boi') return hotDogsMenu.find(h => h.id === 'boi')?.name || 'Salsicha de Boi';
     if (dogType === 'frango') return hotDogsMenu.find(h => h.id === 'frango')?.name || 'Frango Desfiado';
     if (dogType === 'calabresa') return hotDogsMenu.find(h => h.id === 'calabresa')?.name || 'Calabresa Defumada';
@@ -172,7 +172,8 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   };
 
   // Helper to get hot dog price from dynamic menu
-  const getHotDogPrice = (dogType: string): number => {
+  const getHotDogPrice = (dogType: string | null): number => {
+    if (!dogType) return 0;
     // For single protein types, find directly
     const simpleId = dogType.split('_')[0];
     const item = hotDogsMenu.find(h => h.id === simpleId);
@@ -222,6 +223,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
   };
 
   const handleAdd = () => {
+    if (!type) return;
     onAddHotDog({
       type,
       baseToppings,
@@ -253,6 +255,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
     setSelectedDrinks({});
     setNotes('');
     setQuantity(1);
+    setType(null); // Reset type to null
     setCurrentStep(1); // Back to beginning
 
     // Display temporary Toast
@@ -782,13 +785,14 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
           {/* Forward or Add Button */}
           {(() => {
             const allProteinsDisabled = disabledItems.includes('boi') && disabledItems.includes('frango') && disabledItems.includes('calabresa');
+            const isNextDisabled = allProteinsDisabled || (currentStep === 1 && !type);
             return currentStep < 4 ? (
               <button
                 type="button"
                 onClick={handleNextStep}
-                disabled={allProteinsDisabled}
+                disabled={isNextDisabled}
                 className={`flex-1 font-black py-3.5 px-4 rounded-2xl flex items-center justify-center gap-1.5 text-xs shadow-md transition-all ${
-                  allProteinsDisabled
+                  isNextDisabled
                     ? 'bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed opacity-40'
                     : 'bg-brand-red hover:bg-brand-red-dark text-white hover:shadow-lg cursor-pointer focus:ring-2 focus:ring-brand-amber/40'
                 }`}
