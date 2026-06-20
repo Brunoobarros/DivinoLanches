@@ -1,6 +1,7 @@
 // api/mercadopago-webhook.js
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import crypto from 'crypto';
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -38,6 +39,48 @@ export default async function handler(req, res) {
     const topic = req.query.topic || type;
     const paymentId = data?.id || req.query.id;
 
+    // --- ASSINATURA DE SEGURANÇA (WEBHOOK SIGNATURE VERIFICATION) ---
+    const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const xSignature = req.headers['x-signature'];
+      const xRequestId = req.headers['x-request-id'];
+
+      if (!xSignature || !xRequestId) {
+        console.warn('❌ [Assinatura Inválida] Cabeçalhos x-signature ou x-request-id ausentes.');
+        return res.status(401).json({ message: 'Não autorizado: Cabeçalhos ausentes.' });
+      }
+
+      // Extrair ts e v1 do x-signature (ts=12345678,v1=hash_sha256)
+      const parts = String(xSignature).split(',');
+      let ts = '';
+      let receivedHash = '';
+      parts.forEach(part => {
+        const [key, value] = part.split('=');
+        if (key === 'ts') ts = value;
+        if (key === 'v1') receivedHash = value;
+      });
+
+      if (!ts || !receivedHash) {
+        console.warn('❌ [Assinatura Inválida] Formato de x-signature incorreto.');
+        return res.status(401).json({ message: 'Não autorizado: Assinatura malformada.' });
+      }
+
+      // Construir o manifesto v2 e gerar o HMAC-SHA256 local
+      const manifest = `id:${paymentId};request-id:${xRequestId};ts:${ts};`;
+      const hmac = crypto.createHmac('sha256', webhookSecret);
+      hmac.update(manifest);
+      const generatedHash = hmac.digest('hex');
+
+      if (generatedHash !== receivedHash) {
+        console.warn('❌ [Assinatura Inválida] Assinatura do webhook não confere.');
+        return res.status(401).json({ message: 'Não autorizado: Assinatura inválida.' });
+      }
+      
+      console.log('✅ [Assinatura Válida] Webhook autenticado com sucesso.');
+    } else {
+      console.warn('⚠️ [Aviso de Segurança] MERCADO_PAGO_WEBHOOK_SECRET não configurado. Ignorando validação de assinatura em ambiente de teste/dev.');
+    }
+
     if (topic === 'payment' || action?.startsWith('payment.')) {
       if (!paymentId) {
         return res.status(400).json({ message: 'ID do pagamento ausente' });
@@ -70,6 +113,7 @@ export default async function handler(req, res) {
       console.log(`Webhook MP: ID ${paymentId}, Pedido ${orderId}, Status: ${status}`);
 
       if (orderId && status === 'approved') {
+        const orderRef = doc(db, 'orders', orderId);
         await setDoc(orderRef, {
           paid: true,
           confirmed: true
