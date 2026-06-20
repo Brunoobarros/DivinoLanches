@@ -553,7 +553,7 @@ export default function AdminPanel({
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                ⏳ Pendentes ({orders.filter(o => !o.confirmed).length})
+                Pendentes ({orders.filter(o => !o.confirmed).length})
               </button>
               <button
                 onClick={() => setOrdersFilter('confirmed')}
@@ -563,7 +563,7 @@ export default function AdminPanel({
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                ✅ Confirmados ({orders.filter(o => o.confirmed === true && !o.delivered).length})
+                Confirmados ({orders.filter(o => o.confirmed === true && !o.delivered).length})
               </button>
               <button
                 onClick={() => setOrdersFilter('delivered')}
@@ -573,7 +573,7 @@ export default function AdminPanel({
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                📦 Finalizados ({orders.filter(o => o.delivered === true).length})
+                Finalizados ({orders.filter(o => o.delivered === true).length})
               </button>
             </div>
 
