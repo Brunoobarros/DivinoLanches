@@ -279,10 +279,10 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
       <AnimatePresence>
         {showSuccessToast && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-emerald-600 text-white rounded-xl py-2 px-3.5 flex items-center justify-between shadow-md text-xs font-bold"
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -50, scale: 0.95 }}
+            className="fixed top-4 left-4 right-4 md:left-auto md:w-80 md:right-4 z-50 bg-emerald-600 text-white rounded-2xl py-3 px-4 flex items-center justify-between shadow-2xl text-xs font-bold border border-emerald-500/30"
           >
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px]">✓</span>
@@ -292,7 +292,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
               <button
                 type="button"
                 onClick={onNavigateToCart}
-                className="bg-white text-emerald-700 hover:bg-emerald-50 px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer"
+                className="bg-white text-emerald-700 hover:bg-emerald-50 px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer shadow-xs"
               >
                 Ver Carrinho
               </button>
