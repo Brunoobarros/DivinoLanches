@@ -276,6 +276,11 @@ export default function OrderSummaryAndCheckout({
                   reject();
                   return;
                 }
+                if (!current.neighborhood.trim()) {
+                  setValidationError('Por favor, informe o seu bairro!');
+                  reject();
+                  return;
+                }
               }
 
               setIsProcessing(true);
