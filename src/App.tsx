@@ -65,7 +65,9 @@ export default function App() {
     { id: 'milhoErvilha', name: 'Milho & Ervilha Dupla', description: 'Docinho e crocante' },
     { id: 'vinagrete', name: 'Vinagrete Picadinho', description: 'Tomate fresco e cebola' },
     { id: 'cenoura', name: 'Cenoura Raladinha', description: 'Fina e nutritiva' },
-    { id: 'batataPalha', name: 'Batata Palha Crocante', description: 'Sempre fresquinha' }
+    { id: 'batataPalha', name: 'Batata Palha Crocante', description: 'Sempre fresquinha' },
+    { id: 'salsicha', name: 'Salsicha', description: 'Salsicha cozida' },
+    { id: 'pao', name: 'Pão', description: 'Pão de hotdog fofinho' }
   ]);
   const [extrasConfig, setExtrasConfig] = useState<ExtraConfig[]>([
     { id: 'queijo', name: 'Queijo Muçarela', price: 3.00, description: 'Derretido na chapa' },
@@ -126,7 +128,9 @@ export default function App() {
             { id: 'milhoErvilha', name: 'Milho & Ervilha Dupla', description: 'Docinho e crocante' },
             { id: 'vinagrete', name: 'Vinagrete Picadinho', description: 'Tomate fresco e cebola' },
             { id: 'cenoura', name: 'Cenoura Raladinha', description: 'Fina e nutritiva' },
-            { id: 'batataPalha', name: 'Batata Palha Crocante', description: 'Sempre fresquinha' }
+            { id: 'batataPalha', name: 'Batata Palha Crocante', description: 'Sempre fresquinha' },
+            { id: 'salsicha', name: 'Salsicha', description: 'Salsicha cozida' },
+            { id: 'pao', name: 'Pão', description: 'Pão de hotdog fofinho' }
           ];
           defaultBasic.forEach(item => {
             batch.set(doc(db, 'basic_ingredients', item.id), { name: item.name, description: item.description });
@@ -148,6 +152,27 @@ export default function App() {
           
           await batch.commit();
           console.log('Firebase initialized with default data.');
+        } else {
+          // Migration: add salsicha and pao to basic_ingredients if they do not exist
+          const salsichaSnap = await getDoc(doc(db, 'basic_ingredients', 'salsicha'));
+          const paoSnap = await getDoc(doc(db, 'basic_ingredients', 'pao'));
+          
+          const batch = writeBatch(db);
+          let needsCommit = false;
+          
+          if (!salsichaSnap.exists()) {
+            batch.set(doc(db, 'basic_ingredients', 'salsicha'), { name: 'Salsicha', description: 'Salsicha cozida' });
+            needsCommit = true;
+          }
+          if (!paoSnap.exists()) {
+            batch.set(doc(db, 'basic_ingredients', 'pao'), { name: 'Pão', description: 'Pão de hotdog fofinho' });
+            needsCommit = true;
+          }
+          
+          if (needsCommit) {
+            await batch.commit();
+            console.log('Firebase migrated with salsicha and pao ingredients.');
+          }
         }
       } catch (e) {
         console.error('Error checking or initializing Firebase data', e);
@@ -209,7 +234,7 @@ export default function App() {
       snapshot.forEach(doc => {
         items.push({ id: doc.id, ...doc.data() } as BasicIngredientConfig);
       });
-      const orderMap = { milhoErvilha: 1, vinagrete: 2, cenoura: 3, batataPalha: 4 };
+      const orderMap = { milhoErvilha: 1, vinagrete: 2, cenoura: 3, batataPalha: 4, salsicha: 5, pao: 6 };
       items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
       if (items.length > 0) setBasicIngredients(items);
       loaded.basic = true;
@@ -727,7 +752,7 @@ export default function App() {
           </motion.div>
           
           <div className="space-y-2">
-            <h1 className="font-display font-black text-2xl sm:text-3xl tracking-wide uppercase text-brand-amber animate-pulse">
+            <h1 className="font-display font-black text-2xl sm:text-3xl tracking-wide uppercase text-white animate-pulse">
               Divino Lanches
             </h1>
             <p className="text-xs sm:text-sm text-red-100 font-medium tracking-wider max-w-xs font-sans">

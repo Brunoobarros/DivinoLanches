@@ -27,6 +27,8 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
     vinagrete: true,
     cenoura: true,
     batataPalha: true,
+    salsicha: true,
+    pao: true,
   });
   const [extras, setExtras] = useState<ExtraToppings>({
     queijo: false,
@@ -248,6 +250,8 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
       vinagrete: true,
       cenoura: true,
       batataPalha: true,
+      salsicha: true,
+      pao: true,
     });
     setExtras({
       queijo: false,
@@ -556,12 +560,14 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
                     <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
                       Ingredientes Básicos (Já Inclusos)
                     </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                       {[
                         { key: 'milhoErvilha' as const, label: 'Milho & Ervilha Dupla', desc: 'Docinho e crocante' },
                         { key: 'vinagrete' as const, label: 'Vinagrete Picadinho', desc: 'Tomate fresco e cebola' },
                         { key: 'cenoura' as const, label: 'Cenoura Raladinha', desc: 'Fina e nutritiva' },
                         { key: 'batataPalha' as const, label: 'Batata Palha Crocante', desc: 'Sempre fresquinha' },
+                        { key: 'salsicha' as const, label: 'Salsicha', desc: 'Salsicha cozida' },
+                        { key: 'pao' as const, label: 'Pão de Hotdog', desc: 'Pão de hotdog fofinho' },
                       ].map(({ key, label, desc }) => {
                         const isProductDisabled = disabledItems.includes(key);
                         const isSelected = baseToppings[key] && !isProductDisabled;

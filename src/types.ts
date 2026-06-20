@@ -5,6 +5,8 @@ export interface BaseToppings {
   vinagrete: boolean;
   cenoura: boolean;
   batataPalha: boolean;
+  salsicha: boolean;
+  pao: boolean;
 }
 
 export interface ExtraToppings {

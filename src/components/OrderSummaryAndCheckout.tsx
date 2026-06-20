@@ -519,6 +519,8 @@ export default function OrderSummaryAndCheckout({
     if (!dog.baseToppings.vinagrete) missingBases.push('sem vinagrete');
     if (!dog.baseToppings.cenoura) missingBases.push('sem cenoura');
     if (!dog.baseToppings.batataPalha) missingBases.push('sem batata palha');
+    if (!dog.baseToppings.salsicha) missingBases.push('sem salsicha');
+    if (!dog.baseToppings.pao) missingBases.push('sem pão');
     
     if (missingBases.length > 0) {
       parts.push(`(${missingBases.join(', ')})`);

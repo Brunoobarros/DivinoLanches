@@ -22,14 +22,16 @@ export default function HotDogVisualBuilder({
 
       <div className="relative w-72 h-44 flex items-center justify-center">
         {/* Bread Back / Bun bottom */}
-        <div 
-          className="absolute w-64 h-16 bg-amber-600 rounded-b-full shadow-md z-10 bottom-8 border-b-4 border-amber-700" 
-          style={{ transform: 'rotate(-2deg)' }}
-        />
+        {baseToppings.pao && (
+          <div 
+            className="absolute w-64 h-16 bg-amber-600 rounded-b-full shadow-md z-10 bottom-8 border-b-4 border-amber-700" 
+            style={{ transform: 'rotate(-2deg)' }}
+          />
+        )}
 
         {/* Protein: Salsicha (Boi), Frango Desfiado (Chicken), and/or Calabresa */}
         <AnimatePresence>
-          {(type === 'boi' || type === 'boi_frango' || type === 'boi_calabresa') && (
+          {baseToppings.salsicha && (type === 'boi' || type === 'boi_frango' || type === 'boi_calabresa') && (
             <motion.div
               key="sausage"
               initial={{ y: -60, opacity: 0, rotate: -5 }}
@@ -233,10 +235,12 @@ export default function HotDogVisualBuilder({
         </AnimatePresence>
 
         {/* Bread Front / Bun top */}
-        <div 
-          className="absolute w-64 h-12 bg-amber-500 rounded-t-full bg-linear-to-b from-amber-400 to-amber-600 opacity-90 z-48 bottom-12 border-t-2 border-amber-300"
-          style={{ transform: 'rotate(-2deg)' }}
-        />
+        {baseToppings.pao && (
+          <div 
+            className="absolute w-64 h-12 bg-amber-500 rounded-t-full bg-linear-to-b from-amber-400 to-amber-600 opacity-90 z-48 bottom-12 border-t-2 border-amber-300"
+            style={{ transform: 'rotate(-2deg)' }}
+          />
+        )}
       </div>
 
       <div className="text-center mt-2">
