@@ -1,6 +1,6 @@
 // api/mercadopago-webhook.js
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -70,12 +70,10 @@ export default async function handler(req, res) {
       console.log(`Webhook MP: ID ${paymentId}, Pedido ${orderId}, Status: ${status}`);
 
       if (orderId && status === 'approved') {
-        // Update Firestore order status
-        const orderRef = doc(db, 'orders', orderId);
-        await updateDoc(orderRef, {
+        await setDoc(orderRef, {
           paid: true,
           confirmed: true
-        });
+        }, { merge: true });
         console.log(`[SUCESSO] Pedido ${orderId} atualizado para PAGO e CONFIRMADO via Webhook.`);
       }
     }

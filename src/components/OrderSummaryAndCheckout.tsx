@@ -288,6 +288,49 @@ export default function OrderSummaryAndCheckout({
 
               const orderId = `PED-${String(Date.now()).slice(-4)}-${Math.floor(10 + Math.random() * 90)}`;
 
+              const initialOrder = {
+                id: orderId,
+                customerName: current.customerName,
+                customerPhone: current.customerPhone,
+                orderType: current.orderType,
+                street: current.street,
+                num: current.num,
+                neighborhood: current.neighborhood,
+                reference: current.reference,
+                paymentMethod: current.paymentMethod,
+                changeFor: current.changeFor,
+                hotDogs: current.cart.hotDogs.map((d: any) => ({
+                  type: d.type,
+                  quantity: d.quantity,
+                  price: d.price,
+                  details: formatHotDogIngredients(d)
+                })),
+                drinks: current.cart.drinks.map((dr: any) => ({
+                  name: dr.name,
+                  quantity: dr.quantity,
+                  price: dr.price
+                })),
+                subtotal: current.subtotal,
+                deliveryFee: current.deliveryFee,
+                grandTotal: current.grandTotal,
+                timestamp: new Date().toISOString(),
+                confirmed: false,
+                delivered: false,
+                paid: false
+              };
+
+              const orderRef = doc(db, 'orders', orderId);
+
+              try {
+                await setDoc(orderRef, initialOrder);
+              } catch (dbErr) {
+                console.error('Erro ao criar pedido inicial no Firestore:', dbErr);
+                setValidationError('Erro de conexão ao registrar pedido. Tente novamente.');
+                setIsProcessing(false);
+                reject();
+                return;
+              }
+
               try {
                 const response = await fetch('/api/process-card-payment', {
                   method: 'POST',
@@ -310,39 +353,8 @@ export default function OrderSummaryAndCheckout({
                 const paymentResult = await response.json();
 
                 if (paymentResult.status === 'approved') {
-                  const savedOrder = {
-                    id: orderId,
-                    customerName: current.customerName,
-                    customerPhone: current.customerPhone,
-                    orderType: current.orderType,
-                    street: current.street,
-                    num: current.num,
-                    neighborhood: current.neighborhood,
-                    reference: current.reference,
-                    paymentMethod: current.paymentMethod,
-                    changeFor: current.changeFor,
-                    hotDogs: current.cart.hotDogs.map((d: any) => ({
-                      type: d.type,
-                      quantity: d.quantity,
-                      price: d.price,
-                      details: formatHotDogIngredients(d)
-                    })),
-                    drinks: current.cart.drinks.map((dr: any) => ({
-                      name: dr.name,
-                      quantity: dr.quantity,
-                      price: dr.price
-                    })),
-                    subtotal: current.subtotal,
-                    deliveryFee: current.deliveryFee,
-                    grandTotal: current.grandTotal,
-                    timestamp: new Date().toISOString(),
-                    confirmed: true,
-                    delivered: false,
-                    paid: true
-                  };
-
-                  const orderRef = doc(db, 'orders', orderId);
-                  await setDoc(orderRef, savedOrder);
+                  // Atualiza o pedido existente para pago e confirmado
+                  await setDoc(orderRef, { paid: true, confirmed: true }, { merge: true });
 
                   const whatsappMsg = generateOrderMessage(orderId);
                   const payLabels = {
