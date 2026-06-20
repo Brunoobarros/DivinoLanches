@@ -288,7 +288,7 @@ export default function HotDogCustomizer({ onAddHotDog, onNavigateToCart, onUpda
           >
             <div className="flex items-center gap-2">
               <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-white text-[10px]">✓</span>
-              <span>Dogão adicionado ao carrinho!</span>
+              <span>Divino adicionado ao carrinho!</span>
             </div>
             {onNavigateToCart && (
               <button

@@ -42,6 +42,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 const LOCAL_STORAGE_KEY = 'divino_lanches_cart';
 
 export default function App() {
+  // Loading state for initial menu configurations
+  const [isLoading, setIsLoading] = useState(true);
+
   // Navigation tabs state: 'montar' | 'admin' | 'carrinho'
   const [activeTab, setActiveTab] = useState<'montar' | 'admin' | 'carrinho'>('montar');
 
@@ -155,6 +158,20 @@ export default function App() {
 
   // Subscribe to real-time updates from Firestore
   useEffect(() => {
+    const loaded = {
+      hotdogs: false,
+      drinks: false,
+      basic: false,
+      extras: false,
+      disabled: false
+    };
+
+    const checkLoadingComplete = () => {
+      if (loaded.hotdogs && loaded.drinks && loaded.basic && loaded.extras && loaded.disabled) {
+        setIsLoading(false);
+      }
+    };
+
     const unsubHotdogs = onSnapshot(collection(db, 'menu_hotdogs'), (snapshot) => {
       const items: MenuItem[] = [];
       snapshot.forEach(doc => {
@@ -163,6 +180,12 @@ export default function App() {
       const orderMap = { boi: 1, frango: 2, calabresa: 3 };
       items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
       if (items.length > 0) setHotDogsMenu(items);
+      loaded.hotdogs = true;
+      checkLoadingComplete();
+    }, (err) => {
+      console.error('Erro ao escutar hotdogs:', err);
+      loaded.hotdogs = true;
+      checkLoadingComplete();
     });
 
     const unsubDrinks = onSnapshot(collection(db, 'menu_drinks'), (snapshot) => {
@@ -173,6 +196,12 @@ export default function App() {
       const orderMap = { coca_lata: 1, guarana_lata: 2, fanta_lata: 3, suco_laranja: 4, agua: 5 };
       items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
       if (items.length > 0) setDrinksMenu(items);
+      loaded.drinks = true;
+      checkLoadingComplete();
+    }, (err) => {
+      console.error('Erro ao escutar bebidas:', err);
+      loaded.drinks = true;
+      checkLoadingComplete();
     });
 
     const unsubBasic = onSnapshot(collection(db, 'basic_ingredients'), (snapshot) => {
@@ -183,6 +212,12 @@ export default function App() {
       const orderMap = { milhoErvilha: 1, vinagrete: 2, cenoura: 3, batataPalha: 4 };
       items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
       if (items.length > 0) setBasicIngredients(items);
+      loaded.basic = true;
+      checkLoadingComplete();
+    }, (err) => {
+      console.error('Erro ao escutar ingredientes básicos:', err);
+      loaded.basic = true;
+      checkLoadingComplete();
     });
 
     const unsubExtras = onSnapshot(collection(db, 'extras_config'), (snapshot) => {
@@ -193,12 +228,24 @@ export default function App() {
       const orderMap = { queijo: 1, molhoEspecial: 2, molhoVerde: 3, molhoBarbecue: 4 };
       items.sort((a, b) => (orderMap[a.id as keyof typeof orderMap] || 99) - (orderMap[b.id as keyof typeof orderMap] || 99));
       if (items.length > 0) setExtrasConfig(items);
+      loaded.extras = true;
+      checkLoadingComplete();
+    }, (err) => {
+      console.error('Erro ao escutar extras:', err);
+      loaded.extras = true;
+      checkLoadingComplete();
     });
 
     const unsubDisabled = onSnapshot(doc(db, 'config', 'disabled_items'), (docSnap) => {
       if (docSnap.exists()) {
         setDisabledItems(docSnap.data().items || []);
       }
+      loaded.disabled = true;
+      checkLoadingComplete();
+    }, (err) => {
+      console.error('Erro ao escutar itens desabilitados:', err);
+      loaded.disabled = true;
+      checkLoadingComplete();
     });
 
     return () => {
@@ -651,6 +698,46 @@ export default function App() {
 
   const cartCount = getCartItemsCount();
   const subtotal = getSubtotalValue();
+
+  if (isLoading) {
+    return (
+      <div 
+        className="min-h-screen text-white flex flex-col items-center justify-center font-sans relative overflow-hidden"
+        style={{ backgroundImage: 'radial-gradient(circle at center, #CF0004 0%, #A80003 75%, #7A0002 100%)' }}
+      >
+        {/* Elemento decorativo brilhante */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-amber/15 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-6 text-center px-4">
+          <motion.div
+            animate={{ 
+              scale: [1, 1.08, 1],
+              rotate: [0, 4, -4, 0]
+            }}
+            transition={{ 
+              repeat: Infinity,
+              duration: 2.2,
+              ease: "easeInOut"
+            }}
+            className="w-24 h-24 sm:w-28 sm:h-28 bg-white/10 backdrop-blur-md rounded-full border border-white/20 flex items-center justify-center shadow-2xl relative"
+          >
+            {/* Círculo giratório */}
+            <div className="absolute inset-0.5 rounded-full border-2 border-transparent border-t-brand-amber border-r-brand-amber animate-spin duration-1000" />
+            <span className="text-4xl sm:text-5xl">🌭</span>
+          </motion.div>
+          
+          <div className="space-y-2">
+            <h1 className="font-display font-black text-2xl sm:text-3xl tracking-wide uppercase text-brand-amber animate-pulse">
+              Divino Lanches
+            </h1>
+            <p className="text-xs sm:text-sm text-red-100 font-medium tracking-wider max-w-xs font-sans">
+              Carregando o cardápio divino...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen bg-linear-to-b from-stone-50 to-stone-100/90 text-slate-800 flex flex-col font-sans selection:bg-red-500 selection:text-white md:pb-8 ${isAdminMode ? 'pb-24' : 'pb-8'}`}>
